@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3n-Ταξινόμηση — Schnorr & Shamir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --surface: #141820;
+    --surface2: #1c2230;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e8eaf0;
+    --muted: #7a8299;
+    --accent: #e2c97e;
+    --accent2: #6c9cdc;
+    --accent3: #7ecba1;
+    --red: #e27e7e;
+    --orange: #ff9a3c;
+    --purple: #a57ede;
+    --mono: 'DM Mono', monospace;
+    --serif: 'Fraunces', serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .hero {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 80px 24px 48px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(42px, 7vw, 80px);
+    font-weight: 700;
+    line-height: 1.0;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    margin-top: 20px;
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--muted);
+    max-width: 540px;
+  }
+
+  .content {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  .section { margin-top: 72px; }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  p {
+    font-size: 13px;
+    line-height: 1.9;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .highlight { color: var(--accent); }
+  .blue { color: var(--accent2); }
+  .green { color: var(--accent3); }
+  .red { color: var(--red); }
+  .purple { color: var(--purple); }
+  .orange-t { color: var(--orange); }
+
+  code {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--accent3);
+  }
+
+  .steps {
+    display: grid;
+    gap: 2px;
+    margin-top: 20px;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    align-items: start;
+  }
+
+  .step:hover, .step.active {
+    border-color: var(--border2);
+    background: var(--surface2);
+  }
+
+  .step.active .step-num { color: var(--accent); }
+  .step.active { border-color: var(--accent); }
+
+  .step-num {
+    font-size: 22px;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 700;
+    color: var(--muted);
+    padding-top: 2px;
+    transition: color 0.2s;
+  }
+
+  .step-title {
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .step-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  .demo-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 20px;
+  }
+
+  .demo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .demo-title {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+
+  .btn:hover { background: var(--surface2); border-color: var(--muted); }
+
+  .btn.primary {
+    background: var(--accent);
+    color: #0b0e14;
+    border-color: var(--accent);
+    font-weight: 500;
+  }
+
+  .btn.primary:hover { background: #d4b86a; }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  select {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text);
+    cursor: pointer;
+    outline: none;
+  }
+
+  .grid-wrap {
+    padding: 20px;
+    overflow-x: auto;
+  }
+
+  #grid-canvas { display: block; margin: 0 auto; }
+
+  .step-indicator {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .step-badge {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .step-badge strong { color: var(--accent); font-weight: 500; }
+
+  .step-dots { display: flex; gap: 4px; }
+
+  .step-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border2);
+    transition: background 0.2s;
+  }
+
+  .step-dot.done { background: var(--accent3); }
+  .step-dot.current { background: var(--orange); }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    padding: 10px 20px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .legend-swatch { width: 12px; height: 12px; border-radius: 2px; }
+
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-top: 16px;
+    font-size: 12px;
+    line-height: 2;
+    overflow-x: auto;
+  }
+
+  .code-block .kw { color: var(--purple); }
+  .code-block .fn { color: var(--accent2); }
+  .code-block .cm { color: var(--muted); font-style: italic; }
+  .code-block .num { color: var(--accent); }
+
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 32px 24px;
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  footer p { font-size: 11px; color: var(--muted); margin: 0; }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  .speed-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 80px;
+    height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <p class="hero-eyebrow">Παρουσίαση Αλγορίθμου</p>
+  <h1><em>3n</em>-Ταξινόμηση<br>σε Πλέγμα</h1>
+  <p class="hero-sub">
+    Ένας παράλληλος αλγόριθμος ταξινόμησης για υπολογιστές
+    συνδεδεμένους σε πλέγμα n×n, αποδεδειγμένος από τους
+    C.P.&nbsp;Schnorr και A.&nbsp;Shamir (1986).
+  </p>
+</header>
+
+<main class="content">
+
+  <section class="section">
+    <p class="section-label">Επισκόπηση</p>
+    <h2>Τι είναι;</h2>
+    <p>
+      Ο αλγόριθμος <span class="highlight">3n-Ταξινόμηση</span> ταξινομεί έναν
+      πίνακα n² στοιχείων κατανεμημένο σε ένα πλέγμα n×n παράλληλων επεξεργαστών.
+      Κάθε επεξεργαστής είναι συνδεδεμένος μόνο με τους τέσσερις άμεσους γείτονές του. Η μετακίνηση δεδομένων στη σωστή τους θέση
+      γίνεται μόνο με τοπικές ανταλλαγές μεταξύ γειτόνων.
+    </p>
+    <p>
+      Ο πίνακας ταξινομείται σε <strong class="highlight">φιδωτή(snakelike) διάταξη</strong>:
+      γραμμή 0 αριστερά→δεξιά, γραμμή 1 δεξιά→αριστερά, κ.ο.κ.
+      Το πλέγμα χωρίζεται σε <span class="green">blocks</span> μεγέθους
+      n<sup>3/4</sup> × n<sup>3/4</sup>.
+    </p>
+  </section>
+
+  <section class="section">
+    <p class="section-label">Αλγόριθμος</p>
+    <h2>Τα έξι βήματα</h2>
+
+    <div class="steps" id="steps-list">
+      <div class="step" data-step="1">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">Ταξινόμηση όλων των blocks</div>
+          <p class="step-desc">Ταξινόμησε κάθε block n<sup>3/4</sup>×n<sup>3/4</sup> σε φιδωτή (snake) διάταξη.</p>
+        </div>
+      </div>
+      <div class="step" data-step="2">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">Row unshuffle (n<sup>1/4</sup>-ways)</div>
+          <p class="step-desc">Εκτέλεσε ένα n<sup>1/4</sup>-way unshuffle σε κάθε γραμμή — σαν να μοιράζεις n κάρτες σε k=n<sup>1/4</sup> παίκτες, αναδιανέμοντας στήλες μεταξύ κάθετων φετών.</p>
+        </div>
+      </div>
+      <div class="step" data-step="3">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-title">Ταξινόμηση όλων των blocks ξανά</div>
+          <p class="step-desc">Επανα-ταξινόμησε κάθε block.</p>
+        </div>
+      </div>
+      <div class="step" data-step="4">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <div class="step-title">Ταξινόμηση όλων των στηλών καθοδικά</div>
+          <p class="step-desc">Ταξινόμησε κάθε στήλη αύξουσα, άνω→κάτω.</p>
+        </div>
+      </div>
+      <div class="step" data-step="5">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <div class="step-title">Ταξινόμηση όλων των κάθετων φετών</div>
+          <p class="step-desc">Ταξινόμησε κάθε κάθετη φέτα n×n<sup>3/4</sup> σε φιδωτή διάταξη.</p>
+        </div>
+      </div>
+      <div class="step" data-step="6">
+        <div class="step-num">6</div>
+        <div class="step-content">
+          <div class="step-title">Ταξινόμηση γραμμών με εναλλασσόμενη κατεύθυνση</div>
+          <p class="step-desc">Άρτιες γραμμές αύξουσα (→), περιττές φθίνουσα (←). Η ταξινόμηση έχει ολοκληρωθεί. </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="section-label">Διαδραστικό Demo</p>
+    <h2>Δες το να ταξινομεί</h2>
+    <p>
+      Οπτικοποιεί το <span class="highlight">Βήμα 1</span> σε πλέγμα n×n.
+      Όλα τα blocks ταξινομούνται <span class="highlight">παράλληλα</span> — σε κάθε βήμα,
+      κάθε block συγκρίνει την ίδια θέση ταυτόχρονα.
+      <span class="orange-t">Πορτοκαλί</span>: τα ζεύγη που συγκρίνονται σε όλα τα blocks μαζί.
+      <span class="green">Πράσινο</span>: κάθε αριθμός μόλις κλειδώσει στη σωστή του θέση —
+      όλα τα blocks πρασινίζουν στον ίδιο ρυθμό.
+      Για <strong>256×256</strong> και <strong>4096×4096</strong>, όλα τα blocks αλλάζουν κατάσταση ταυτόχρονα.
+    </p>
+
+    <div class="demo-card">
+      <div class="demo-header">
+        <span class="demo-title">Οπτικοποίηση Πλέγματος</span>
+        <div class="controls">
+          <div class="speed-row">
+            <span>Ταχύτητα</span>
+            <input type="range" id="speed" min="50" max="900" value="500">
+          </div>
+          <select id="grid-size">
+            <option value="16" selected>16 × 16 (q=1)</option>
+            <option value="256">256 × 256 (q=2)</option>
+            <option value="4096">4096 × 4096 (q=3)</option>
+          </select>
+          <button class="btn" id="btn-reset">Επαναφορά</button>
+          <button class="btn" id="btn-step">Βήμα</button>
+          <button class="btn primary" id="btn-play">▶ Αναπαραγωγή</button>
+        </div>
+      </div>
+
+      <div class="grid-wrap">
+        <canvas id="grid-canvas" width="560" height="560"></canvas>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:#1a4a2a"></div>
+          <span>Ταξινομημένο</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:#ff9a3c"></div>
+          <span>Ενεργά / Σύγκριση</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:#1c2230"></div>
+          <span>Μη ταξινομημένο</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:rgba(108,156,220,0.35)"></div>
+          <span>Όριο block</span>
+        </div>
+      </div>
+
+      <div class="step-indicator">
+        <span class="step-badge">Φάση: <strong id="phase-label">Έτοιμο</strong></span>
+        <span class="step-badge">Συγκρίσεις: <strong id="cmp-count">0</strong></span>
+        <span class="step-badge">Ανταλλαγές: <strong id="swap-count">0</strong></span>
+        <div class="step-dots" id="step-dots">
+          <div class="step-dot" id="dot-1"></div>
+          <div class="step-dot" id="dot-2"></div>
+          <div class="step-dot" id="dot-3"></div>
+          <div class="step-dot" id="dot-4"></div>
+          <div class="step-dot" id="dot-5"></div>
+          <div class="step-dot" id="dot-6"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="section-label">Θεωρία</p>
+    <h2>Γιατί είναι το 3n βέλτιστο;</h2>
+    <p>
+      Εδω θα υπάρχει μια αναφορά στην θεωρία
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  <p>
+    C.P. Schnorr (Univ. Frankfurt) &amp; A. Shamir (Weizmann Institute) ·
+    <a href="https://dl.acm.org/doi/10.1145/12130.12156" target="_blank">STOC '86</a>
+  </p>
+  <p>Διαδραστική οπτικοποίηση — ελεύθερη φιλοξενία σε GitHub Pages, Netlify, Vercel κλπ.</p>
+</footer>
+
+<script>
+const canvas = document.getElementById('grid-canvas');
+const ctx = canvas.getContext('2d');
+
+let N = 16;
+let grid = [];           // cell values (null for N=4096)
+let ops = [];
+let opIdx = 0;
+let playing = false;
+let playTimer = null;
+let comparisons = 0, swaps = 0;
+let highlights = new Set();   // Set of "r,c" strings currently orange
+let sortedCells = new Set();  // Set of "r,c" strings permanently green (N=16)
+let blockStates = {};         // "br,bc" → 'unsorted'|'sorting'|'sorted' (N=256/4096)
+let currentPhase = 'Έτοιμο';
+let currentStep = 0;
+
+const PHASE_READY = 'Έτοιμο';
+const PHASE_STEP1 = 'Βήμα 1 — Παράλληλη ταξινόμηση blocks';
+const PHASE_DONE  = 'Βήμα 1 ολοκληρώθηκε ✓';
+
+// n = 2^(4q)  =>  blockSize = n^(3/4) = 2^(3q)
+function getBlockSize(n) {
+  return Math.round(Math.pow(n, 0.75));
+}
+
+function getNumBlocks(n) {
+  return n / getBlockSize(n);
+}
+
+// Snake-order indices within a block starting at (r0,c0) ending at (r1,c1)
+function getSnakeIndices(r0, c0, r1, c1) {
+  const idx = [];
+  for (let r = r0; r <= r1; r++) {
+    const fwd = ((r - r0) % 2 === 0);
+    for (let ci = 0; ci <= c1 - c0; ci++) {
+      const c = fwd ? c0 + ci : c1 - ci;
+      idx.push([r, c]);
+    }
+  }
+  return idx;
+}
+
+// ─── Grid initialisation ────────────────────────────────────────────────────
+
+function initGrid() {
+  N = parseInt(document.getElementById('grid-size').value);
+  const bs = getBlockSize(N);
+  const nb = getNumBlocks(N);
+
+  highlights   = new Set();
+  sortedCells  = new Set();
+  blockStates  = {};
+  comparisons  = 0;
+  swaps        = 0;
+  currentPhase = PHASE_READY;
+  currentStep  = 0;
+
+  if (N <= 256) {
+    grid = Array.from({ length: N * N }, (_, i) => i + 1);
+    for (let i = grid.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [grid[i], grid[j]] = [grid[j], grid[i]];
+    }
+  } else {
+    grid = null;  // N=4096: too large, block-level display only
+  }
+
+  ops   = buildOps(N, bs, nb);
+  opIdx = 0;
+
+  document.getElementById('btn-play').disabled = false;
+  document.getElementById('btn-step').disabled = false;
+  document.getElementById('btn-play').textContent = '▶ Αναπαραγωγή';
+
+  updateUI();
+  drawGrid();
+}
+
+// ─── Build operation list ────────────────────────────────────────────────────
+
+function buildOps(n, bs, nb) {
+  const list = [];
+  list.push({ type: 'phase', phase: PHASE_STEP1, step: 1 });
+
+  if (n === 16) {
+    // ── Parallel cell-level animation ───────────────────────────────────────
+    // All blocks run bubble sort in lockstep: at each step j of each outer
+    // pass i, ALL blocks do their comparison simultaneously (one op covers
+    // every block). After each outer pass, ALL blocks mark their sorted cell
+    // green at the same time.
+
+    const g = grid.slice();  // working copy
+    const numB = nb * nb;
+
+    // Gather snake indices + working value arrays for every block
+    const allIdx  = [];
+    const allVals = [];
+    for (let br = 0; br < nb; br++) {
+      for (let bc = 0; bc < nb; bc++) {
+        const r0 = br * bs, r1 = r0 + bs - 1;
+        const c0 = bc * bs, c1 = c0 + bs - 1;
+        const idx = getSnakeIndices(r0, c0, r1, c1);
+        allIdx.push(idx);
+        allVals.push(idx.map(([r, c]) => g[r * n + c]));
+      }
+    }
+
+    const len = bs * bs; // elements per block (64 for N=16)
+
+    for (let i = 0; i < len - 1; i++) {
+      for (let j = 0; j < len - 1 - i; j++) {
+        // One op = all blocks compare position j simultaneously
+        const actions = [];
+        for (let b = 0; b < numB; b++) {
+          const idx  = allIdx[b];
+          const vals = allVals[b];
+          const [ra, ca] = idx[j];
+          const [rb, cb] = idx[j + 1];
+          const isSwap = vals[j] > vals[j + 1];
+          if (isSwap) {
+            [vals[j], vals[j + 1]] = [vals[j + 1], vals[j]];
+            [g[ra * n + ca], g[rb * n + cb]] = [g[rb * n + cb], g[ra * n + ca]];
+          }
+          actions.push({ ra, ca, rb, cb, isSwap });
+        }
+        list.push({ type: 'parallel-step', actions });
+      }
+      // After outer pass i: position (len-1-i) in EVERY block is now sorted
+      list.push({
+        type: 'parallel-cell-sorted',
+        cells: allIdx.map(idx => idx[len - 1 - i])
+      });
+    }
+    // Position 0 in every block is the last remaining sorted cell
+    list.push({
+      type: 'parallel-cell-sorted',
+      cells: allIdx.map(idx => idx[0])
+    });
+
+  } else {
+    // ── Parallel block-level animation (N=256 / N=4096) ────────────────────
+    // All blocks turn orange together, sort (instantly), then all turn green.
+
+    const g = (n <= 256) ? grid.slice() : null;
+    list.push({ type: 'all-blocks-animating' });
+
+    if (g) {
+      const allCells = [];
+      for (let br = 0; br < nb; br++) {
+        for (let bc = 0; bc < nb; bc++) {
+          const r0 = br * bs, r1 = r0 + bs - 1;
+          const c0 = bc * bs, c1 = c0 + bs - 1;
+          const indices = getSnakeIndices(r0, c0, r1, c1);
+          const vals = indices.map(([r, c]) => g[r * n + c]).sort((a, b) => a - b);
+          indices.forEach(([r, c], i) => {
+            g[r * n + c] = vals[i];
+            allCells.push({ r, c, v: vals[i] });
+          });
+        }
+      }
+      list.push({ type: 'all-blocks-done', cells: allCells });
+    } else {
+      list.push({ type: 'all-blocks-done', cells: null });
+    }
+  }
+
+  list.push({ type: 'done', phase: PHASE_DONE });
+  return list;
+}
+
+// ─── Step forward ────────────────────────────────────────────────────────────
+
+function stepForward() {
+  if (opIdx >= ops.length) return;
+  const op = ops[opIdx++];
+
+  switch (op.type) {
+
+    case 'phase':
+      currentPhase = op.phase;
+      currentStep  = op.step;
+      highlights   = new Set();
+      updateUI();
+      drawGrid();
+      break;
+
+    // All blocks do their j-th comparison of outer pass i simultaneously
+    case 'parallel-step': {
+      highlights = new Set();
+      for (const { ra, ca, rb, cb, isSwap } of op.actions) {
+        highlights.add(`${ra},${ca}`);
+        highlights.add(`${rb},${cb}`);
+        if (isSwap) {
+          [grid[ra * N + ca], grid[rb * N + cb]] = [grid[rb * N + cb], grid[ra * N + ca]];
+          swaps++;
+        } else {
+          comparisons++;
+        }
+      }
+      updateUI();
+      drawGrid();
+      break;
+    }
+
+    // All blocks place their (len-1-i)-th sorted cell simultaneously
+    case 'parallel-cell-sorted':
+      for (const [r, c] of op.cells) {
+        sortedCells.add(`${r},${c}`);
+      }
+      highlights = new Set();
+      drawGrid();
+      break;
+
+    // Block-mode (N=256/4096): all blocks turn orange at once
+    case 'all-blocks-animating': {
+      const nb = getNumBlocks(N);
+      for (let br = 0; br < nb; br++)
+        for (let bc = 0; bc < nb; bc++)
+          blockStates[`${br},${bc}`] = 'sorting';
+      highlights = new Set();
+      drawGrid();
+      break;
+    }
+
+    // Block-mode: all blocks turn green at once (values applied for N=256)
+    case 'all-blocks-done': {
+      if (op.cells) op.cells.forEach(({ r, c, v }) => { grid[r * N + c] = v; });
+      const nb = getNumBlocks(N);
+      for (let br = 0; br < nb; br++)
+        for (let bc = 0; bc < nb; bc++)
+          blockStates[`${br},${bc}`] = 'sorted';
+      highlights = new Set();
+      drawGrid();
+      break;
+    }
+
+    case 'done':
+      currentPhase = op.phase;
+      highlights   = new Set();
+      playing      = false;
+      clearTimeout(playTimer);
+      document.getElementById('btn-play').textContent = '▶ Αναπαραγωγή';
+      document.getElementById('btn-play').disabled = true;
+      document.getElementById('btn-step').disabled = true;
+      updateUI();
+      drawGrid();
+      break;
+  }
+}
+
+// ─── Draw ────────────────────────────────────────────────────────────────────
+
+function drawGrid() {
+  const size = Math.min(560, window.innerWidth - 48);
+  canvas.width  = size;
+  canvas.height = size;
+
+  const bs   = getBlockSize(N);
+  const nb   = getNumBlocks(N);
+  const cell = size / N;
+  const bpx  = bs * cell;
+
+  ctx.clearRect(0, 0, size, size);
+
+  if (N === 16) {
+    // ── Individual cell view ────────────────────────────────────────────────
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const x   = c * cell;
+        const y   = r * cell;
+        const key = `${r},${c}`;
+        const act = highlights.has(key);
+        const srt = sortedCells.has(key);
+        const val = grid[r * N + c];
+
+        // Background
+        ctx.fillStyle = act ? '#3d2000' : srt ? '#1a4a2a' : '#1c2230';
+        ctx.fillRect(x, y, cell, cell);
+
+        // Number
+        const fs = Math.max(8, Math.min(13, cell * 0.38));
+        ctx.font         = `${fs}px 'DM Mono', monospace`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle    = act ? '#ff9a3c' : srt ? '#7ecba1' : '#4a5470';
+        ctx.fillText(val, x + cell / 2, y + cell / 2);
+
+        // Cell border
+        ctx.strokeStyle = '#252e40';
+        ctx.lineWidth   = 0.5;
+        ctx.strokeRect(x + 0.25, y + 0.25, cell - 0.5, cell - 0.5);
+      }
+    }
+
+    // Block boundaries
+    ctx.strokeStyle = 'rgba(108,156,220,0.55)';
+    ctx.lineWidth   = 1.8;
+    for (let br = 0; br < nb; br++) {
+      for (let bc = 0; bc < nb; bc++) {
+        ctx.strokeRect(bc * bpx, br * bpx, bpx, bpx);
+      }
+    }
+
+  } else if (N === 256) {
+    // ── Heatmap (individual pixels) with block-state overlays ──────────────
+    const total = N * N;
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const x  = c * cell;
+        const y  = r * cell;
+        const t  = (grid[r * N + c] - 1) / (total - 1); // 0..1
+        const br = Math.floor(r / bs);
+        const bc = Math.floor(c / bs);
+        const st = blockStates[`${br},${bc}`] || 'unsorted';
+
+        if (st === 'sorted') {
+          ctx.fillStyle = `rgb(${Math.round(15 + t * 35)},${Math.round(80 + t * 130)},${Math.round(45 + t * 65)})`;
+        } else if (st === 'sorting') {
+          ctx.fillStyle = `rgb(${Math.round(120 + t * 100)},${Math.round(60 + t * 80)},${Math.round(10)})`;
+        } else {
+          ctx.fillStyle = `rgb(${Math.round(35 + t * 55)},${Math.round(45 + t * 65)},${Math.round(85 + t * 75)})`;
+        }
+        ctx.fillRect(x, y, Math.max(1, cell), Math.max(1, cell));
+      }
+    }
+    // Block borders
+    ctx.strokeStyle = 'rgba(108,156,220,0.4)';
+    ctx.lineWidth   = 0.5;
+    for (let br = 0; br < nb; br++) {
+      for (let bc = 0; bc < nb; bc++) {
+        ctx.strokeRect(bc * bpx + 0.25, br * bpx + 0.25, bpx - 0.5, bpx - 0.5);
+      }
+    }
+
+  } else {
+    // ── Block rectangles only (N=4096) ─────────────────────────────────────
+    for (let br = 0; br < nb; br++) {
+      for (let bc = 0; bc < nb; bc++) {
+        const x  = bc * bpx;
+        const y  = br * bpx;
+        const st = blockStates[`${br},${bc}`] || 'unsorted';
+        ctx.fillStyle = st === 'sorted'  ? '#1a4a2a'
+                      : st === 'sorting' ? '#3d2000'
+                      :                   '#1c2230';
+        ctx.fillRect(x, y, bpx, bpx);
+
+        ctx.strokeStyle = 'rgba(108,156,220,0.5)';
+        ctx.lineWidth   = 1;
+        ctx.strokeRect(x + 0.5, y + 0.5, bpx - 1, bpx - 1);
+
+        if (bpx > 30) {
+          ctx.fillStyle    = st === 'unsorted' ? '#3a4060'
+                           : st === 'sorting'  ? '#ff9a3c'
+                           :                    '#7ecba1';
+          ctx.font         = `${Math.max(10, Math.round(bpx * 0.14))}px 'DM Mono', monospace`;
+          ctx.textAlign    = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`(${br},${bc})`, x + bpx / 2, y + bpx / 2);
+        }
+      }
+    }
+  }
+}
+
+// ─── UI helpers ──────────────────────────────────────────────────────────────
+
+function updateUI() {
+  document.getElementById('phase-label').textContent = currentPhase;
+  document.getElementById('cmp-count').textContent   = comparisons.toLocaleString();
+  document.getElementById('swap-count').textContent  = swaps.toLocaleString();
+
+  for (let i = 1; i <= 6; i++) {
+    const dot = document.getElementById(`dot-${i}`);
+    dot.className = 'step-dot';
+    if (i < currentStep)      dot.classList.add('done');
+    else if (i === currentStep) dot.classList.add('current');
+  }
+
+  document.querySelectorAll('.step').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.step) === currentStep);
+  });
+}
+
+function getSpeed() {
+  return 950 - parseInt(document.getElementById('speed').value);
+}
+
+// ─── Playback ────────────────────────────────────────────────────────────────
+
+function togglePlay() {
+  if (opIdx >= ops.length) return;
+  playing = !playing;
+  document.getElementById('btn-play').textContent = playing ? '⏸ Παύση' : '▶ Αναπαραγωγή';
+  if (playing) runPlay();
+}
+
+function runPlay() {
+  if (!playing || opIdx >= ops.length) {
+    playing = false;
+    document.getElementById('btn-play').textContent = '▶ Αναπαραγωγή';
+    return;
+  }
+  stepForward();
+  const last = ops[opIdx - 1];
+  if (!last) { runPlay(); return; }
+
+  // No delay on structural markers; brief pause on cell-sorted for green flash visibility
+  if (last.type === 'phase') {
+    runPlay();
+  } else {
+    playTimer = setTimeout(runPlay, getSpeed());
+  }
+}
+
+// ─── Event listeners ─────────────────────────────────────────────────────────
+
+document.getElementById('btn-play').addEventListener('click', togglePlay);
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  if (playing) {
+    playing = false;
+    clearTimeout(playTimer);
+    document.getElementById('btn-play').textContent = '▶ Αναπαραγωγή';
+  }
+  stepForward();
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  playing = false;
+  clearTimeout(playTimer);
+  initGrid();
+});
+
+document.getElementById('grid-size').addEventListener('change', () => {
+  playing = false;
+  clearTimeout(playTimer);
+  initGrid();
+});
+
+document.querySelectorAll('.step').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+  });
+});
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+initGrid();
+</script>
+</body>
+</html>
