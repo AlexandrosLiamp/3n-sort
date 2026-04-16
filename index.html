@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html lang="el">
-<head>
-<meta charset="UTF-8">
+<html lang="el"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3n-Ταξινόμηση — Schnorr & Shamir</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&display=swap" rel="stylesheet">
+<title>3n-sort — Διαδραστική Οπτικοποίηση</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,700;1,300;1,700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0b0e14;
@@ -52,7 +51,7 @@
     z-index: 1;
     max-width: 900px;
     margin: 0 auto;
-    padding: 80px 24px 48px;
+    padding: 64px 24px 40px;
     border-bottom: 1px solid var(--border);
   }
 
@@ -62,16 +61,17 @@
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--accent);
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
 
   .hero h1 {
     font-family: var(--serif);
-    font-size: clamp(42px, 7vw, 80px);
+    font-size: clamp(42px, 7vw, 72px);
     font-weight: 700;
     line-height: 1.0;
     letter-spacing: -0.01em;
     color: var(--text);
+    margin-bottom: 16px;
   }
 
   .hero h1 em {
@@ -81,115 +81,28 @@
   }
 
   .hero-sub {
-    margin-top: 20px;
     font-size: 13px;
     line-height: 1.8;
     color: var(--muted);
-    max-width: 540px;
+    max-width: 560px;
+    margin-bottom: 12px;
   }
+
+  .hero-refs {
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0.7;
+  }
+
+  .hero-refs a { color: var(--accent2); text-decoration: none; }
+  .hero-refs a:hover { text-decoration: underline; }
 
   .content {
     position: relative;
     z-index: 1;
     max-width: 900px;
     margin: 0 auto;
-    padding: 0 24px 80px;
-  }
-
-  .section { margin-top: 72px; }
-
-  .section-label {
-    font-size: 10px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 12px;
-  }
-
-  h2 {
-    font-family: var(--serif);
-    font-size: 28px;
-    font-weight: 300;
-    font-style: italic;
-    color: var(--text);
-    margin-bottom: 16px;
-  }
-
-  p {
-    font-size: 13px;
-    line-height: 1.9;
-    color: var(--muted);
-    margin-bottom: 12px;
-  }
-
-  .highlight { color: var(--accent); }
-  .blue { color: var(--accent2); }
-  .green { color: var(--accent3); }
-  .red { color: var(--red); }
-  .purple { color: var(--purple); }
-  .orange-t { color: var(--orange); }
-
-  code {
-    font-family: var(--mono);
-    font-size: 11px;
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    border-radius: 4px;
-    padding: 1px 6px;
-    color: var(--accent3);
-  }
-
-  .steps {
-    display: grid;
-    gap: 2px;
-    margin-top: 20px;
-  }
-
-  .step {
-    display: grid;
-    grid-template-columns: 40px 1fr;
-    gap: 16px;
-    padding: 16px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
-    align-items: start;
-  }
-
-  .step:hover, .step.active {
-    border-color: var(--border2);
-    background: var(--surface2);
-  }
-
-  .step.active .step-num { color: var(--accent); }
-  .step.active { border-color: var(--accent); }
-
-  .step-num {
-    font-size: 22px;
-    font-family: var(--serif);
-    font-style: italic;
-    font-weight: 700;
-    color: var(--muted);
-    padding-top: 2px;
-    transition: color 0.2s;
-  }
-
-  .step-title {
-    font-size: 12px;
-    color: var(--text);
-    font-weight: 500;
-    margin-bottom: 4px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-
-  .step-desc {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.7;
-    margin: 0;
+    padding: 32px 24px 80px;
   }
 
   .demo-card {
@@ -197,17 +110,16 @@
     border: 1px solid var(--border2);
     border-radius: 12px;
     overflow: hidden;
-    margin-top: 20px;
   }
 
   .demo-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 14px 20px;
     border-bottom: 1px solid var(--border);
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 10px;
   }
 
   .demo-title {
@@ -249,6 +161,12 @@
   .btn.primary:hover { background: #d4b86a; }
   .btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
+  .btn.active-toggle {
+    background: rgba(108,156,220,0.2);
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+
   select {
     font-family: var(--mono);
     font-size: 11px;
@@ -264,15 +182,94 @@
   .grid-wrap {
     padding: 20px;
     overflow-x: auto;
+    border-bottom: 1px solid var(--border);
   }
 
   #grid-canvas { display: block; margin: 0 auto; }
 
-  .step-indicator {
-    padding: 12px 20px;
-    border-top: 1px solid var(--border);
+  /* -- Phase info panel -- */
+  .phase-panel {
     display: flex;
-    gap: 12px;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    min-height: 80px;
+  }
+
+  .phase-badge {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--serif);
+    font-size: 20px;
+    font-style: italic;
+    font-weight: 700;
+    color: var(--muted);
+    transition: background 0.3s, color 0.3s, border-color 0.3s;
+  }
+
+  .phase-badge.active {
+    background: rgba(226,201,126,0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .phase-badge.done {
+    background: rgba(126,203,161,0.12);
+    border-color: var(--accent3);
+    color: var(--accent3);
+  }
+
+  .phase-info { flex: 1; }
+
+  .phase-title-text {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    transition: color 0.3s;
+  }
+
+  .phase-desc-text {
+    font-size: 12px;
+    line-height: 1.75;
+    color: var(--muted);
+  }
+
+  .phase-dots-col {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 2px;
+    flex-shrink: 0;
+  }
+
+  .phase-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border2);
+    transition: background 0.3s;
+  }
+
+  .phase-dot.done    { background: var(--accent3); }
+  .phase-dot.current { background: var(--orange); }
+
+  /* -- Status bar -- */
+  .step-indicator {
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 16px;
     align-items: center;
     flex-wrap: wrap;
   }
@@ -286,23 +283,11 @@
 
   .step-badge strong { color: var(--accent); font-weight: 500; }
 
-  .step-dots { display: flex; gap: 4px; }
-
-  .step-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--border2);
-    transition: background 0.2s;
-  }
-
-  .step-dot.done { background: var(--accent3); }
-  .step-dot.current { background: var(--orange); }
-
+  /* -- Legend -- */
   .legend {
     display: flex;
     gap: 16px;
     padding: 10px 20px;
-    border-top: 1px solid var(--border);
     flex-wrap: wrap;
   }
 
@@ -316,27 +301,87 @@
 
   .legend-swatch { width: 12px; height: 12px; border-radius: 2px; }
 
-  .code-block {
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 8px;
-    padding: 20px 24px;
-    margin-top: 16px;
-    font-size: 12px;
-    line-height: 2;
-    overflow-x: auto;
+  /* -- Speed slider -- */
+  .speed-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--muted);
   }
 
-  .code-block .kw { color: var(--purple); }
-  .code-block .fn { color: var(--accent2); }
-  .code-block .cm { color: var(--muted); font-style: italic; }
-  .code-block .num { color: var(--accent); }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 72px;
+    height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  /* -- Phase jump buttons -- */
+  .phase-jump-row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .phase-jump-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-right: 4px;
+  }
+
+  .phase-btn {
+    font-family: var(--mono);
+    font-size: 10px;
+    width: 26px;
+    height: 26px;
+    border-radius: 5px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+
+  .phase-btn:hover {
+    background: var(--surface2);
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+
+  .phase-btn.active {
+    background: rgba(226,201,126,0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .phase-btn.done {
+    background: rgba(126,203,161,0.12);
+    border-color: var(--accent3);
+    color: var(--accent3);
+  }
 
   footer {
     position: relative;
     z-index: 1;
     border-top: 1px solid var(--border);
-    padding: 32px 24px;
+    padding: 28px 24px;
     max-width: 900px;
     margin: 0 auto;
     display: flex;
@@ -349,234 +394,182 @@
   footer p { font-size: 11px; color: var(--muted); margin: 0; }
   footer a { color: var(--accent); text-decoration: none; }
   footer a:hover { text-decoration: underline; }
-
-  .speed-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  input[type=range] {
-    -webkit-appearance: none;
-    width: 80px;
-    height: 4px;
-    background: var(--border2);
-    border-radius: 2px;
-    outline: none;
-  }
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    background: var(--accent);
-    cursor: pointer;
-  }
+  footer em { font-style: italic; }
 </style>
 </head>
 <body>
 
 <header class="hero">
-  <p class="hero-eyebrow">Παρουσίαση Αλγορίθμου</p>
-  <h1><em>3n</em>-Ταξινόμηση<br>σε Πλέγμα</h1>
+  <p class="hero-eyebrow">Διαδραστική Οπτικοποίηση Αλγορίθμου</p>
+  <h1><em>3n</em>-sort</h1>
   <p class="hero-sub">
-    Ένας παράλληλος αλγόριθμος ταξινόμησης για υπολογιστές
-    συνδεδεμένους σε πλέγμα n×n, αποδεδειγμένος από τους
-    C.P.&nbsp;Schnorr και A.&nbsp;Shamir (1986).
+    Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n&times;n επεξεργαστών με τοπική επικοινωνία.
+    Ταξινομεί N = n&sup2; στοιχεία σε 3n + O(n<sup>3/4</sup>) βήματα χρησιμοποιώντας 8 φάσεις.
   </p>
 </header>
 
 <main class="content">
 
-  <section class="section">
-    <p class="section-label">Επισκόπηση</p>
-    <h2>Τι είναι;</h2>
-    <p>
-      Ο αλγόριθμος <span class="highlight">3n-Ταξινόμηση</span> ταξινομεί έναν
-      πίνακα n² στοιχείων κατανεμημένο σε ένα πλέγμα n×n παράλληλων επεξεργαστών.
-      Κάθε επεξεργαστής είναι συνδεδεμένος μόνο με τους τέσσερις άμεσους γείτονές του. Η μετακίνηση δεδομένων στη σωστή τους θέση
-      γίνεται μόνο με τοπικές ανταλλαγές μεταξύ γειτόνων.
-    </p>
-    <p>
-      Ο πίνακας ταξινομείται σε <strong class="highlight">φιδωτή(snakelike) διάταξη</strong>:
-      γραμμή 0 αριστερά→δεξιά, γραμμή 1 δεξιά→αριστερά, κ.ο.κ.
-      Το πλέγμα χωρίζεται σε <span class="green">blocks</span> μεγέθους
-      n<sup>3/4</sup> × n<sup>3/4</sup>.
-    </p>
-  </section>
+  <div class="demo-card">
 
-  <section class="section">
-    <p class="section-label">Αλγόριθμος</p>
-    <h2>Τα έξι βήματα</h2>
-
-    <div class="steps" id="steps-list">
-      <div class="step" data-step="1">
-        <div class="step-num">1</div>
-        <div class="step-content">
-          <div class="step-title">Ταξινόμηση όλων των blocks</div>
-          <p class="step-desc">Ταξινόμησε κάθε block n<sup>3/4</sup>×n<sup>3/4</sup> σε φιδωτή (snake) διάταξη.</p>
+    <!-- Controls -->
+    <div class="demo-header">
+      <span class="demo-title">Προσομοίωση 3n-sort</span>
+      <div class="controls">
+        <div class="speed-row">
+          <span>Ταχύτητα</span>
+          <input type="range" id="speed" min="30" max="950" value="500">
         </div>
-      </div>
-      <div class="step" data-step="2">
-        <div class="step-num">2</div>
-        <div class="step-content">
-          <div class="step-title">Row unshuffle (n<sup>1/4</sup>-ways)</div>
-          <p class="step-desc">Εκτέλεσε ένα n<sup>1/4</sup>-way unshuffle σε κάθε γραμμή — σαν να μοιράζεις n κάρτες σε k=n<sup>1/4</sup> παίκτες, αναδιανέμοντας στήλες μεταξύ κάθετων φετών.</p>
-        </div>
-      </div>
-      <div class="step" data-step="3">
-        <div class="step-num">3</div>
-        <div class="step-content">
-          <div class="step-title">Ταξινόμηση όλων των blocks ξανά</div>
-          <p class="step-desc">Επανα-ταξινόμησε κάθε block.</p>
-        </div>
-      </div>
-      <div class="step" data-step="4">
-        <div class="step-num">4</div>
-        <div class="step-content">
-          <div class="step-title">Ταξινόμηση όλων των στηλών καθοδικά</div>
-          <p class="step-desc">Ταξινόμησε κάθε στήλη αύξουσα, άνω→κάτω.</p>
-        </div>
-      </div>
-      <div class="step" data-step="5">
-        <div class="step-num">5</div>
-        <div class="step-content">
-          <div class="step-title">Ταξινόμηση όλων των κάθετων φετών</div>
-          <p class="step-desc">Ταξινόμησε κάθε κάθετη φέτα n×n<sup>3/4</sup> σε φιδωτή διάταξη.</p>
-        </div>
-      </div>
-      <div class="step" data-step="6">
-        <div class="step-num">6</div>
-        <div class="step-content">
-          <div class="step-title">Ταξινόμηση γραμμών με εναλλασσόμενη κατεύθυνση</div>
-          <p class="step-desc">Άρτιες γραμμές αύξουσα (→), περιττές φθίνουσα (←). Η ταξινόμηση έχει ολοκληρωθεί. </p>
-        </div>
+        <select id="grid-size">
+          <option value="16" selected="">16 &times; 16 (q=1)</option>
+          <option value="256">256 &times; 256 (q=2)</option>
+        </select>
+        <button class="btn" id="btn-reset">Reset</button>
+        <button class="btn" id="btn-skip">&#8652; Επόμενη Φάση</button>
+        <button class="btn" id="btn-step">Βήμα</button>
+        <button class="btn primary" id="btn-play">&#9654; Αναπαραγωγή</button>
       </div>
     </div>
-  </section>
 
-  <section class="section">
-    <p class="section-label">Διαδραστικό Demo</p>
-    <h2>Δες το να ταξινομεί</h2>
-    <p>
-      Το <span class="highlight">Βήμα 1</span> σε πλέγμα n×n.
-      Όλα τα blocks ταξινομούνται <span class="highlight">παράλληλα</span> 
-      <span class="orange-t">Πορτοκαλί</span>: τα ζεύγη που συγκρίνονται.
-      <span class="green">Πράσινο</span>: κάθε αριθμός μόλις κλειδώσει στη σωστή του θέση για το βήμα αυτο.
-    </p>
-
-    <div class="demo-card">
-      <div class="demo-header">
-        <span class="demo-title">Οπτικοποίηση Πλέγματος</span>
-        <div class="controls">
-          <div class="speed-row">
-            <span>Ταχύτητα</span>
-            <input type="range" id="speed" min="50" max="900" value="500">
-          </div>
-          <select id="grid-size">
-            <option value="16" selected>16 × 16 (q=1)</option>
-            <option value="256">256 × 256 (q=2)</option>
-            <option value="4096">4096 × 4096 (q=3)</option>
-          </select>
-          <button class="btn" id="btn-reset">Επαναφορά</button>
-          <button class="btn" id="btn-step">Βήμα</button>
-          <button class="btn primary" id="btn-play">▶ Αναπαραγωγή</button>
-        </div>
-      </div>
-
-      <div class="grid-wrap">
-        <canvas id="grid-canvas" width="560" height="560"></canvas>
-      </div>
-
-      <div class="legend">
-        <div class="legend-item">
-          <div class="legend-swatch" style="background:#1a4a2a"></div>
-          <span>Ταξινομημένο</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-swatch" style="background:#ff9a3c"></div>
-          <span>Ενεργά / Σύγκριση</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-swatch" style="background:#1c2230"></div>
-          <span>Μη ταξινομημένο</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-swatch" style="background:rgba(108,156,220,0.35)"></div>
-          <span>Όριο block</span>
-        </div>
-      </div>
-
-      <div class="step-indicator">
-        <span class="step-badge">Φάση: <strong id="phase-label">Έτοιμο</strong></span>
-        <span class="step-badge">Συγκρίσεις: <strong id="cmp-count">0</strong></span>
-        <span class="step-badge">Ανταλλαγές: <strong id="swap-count">0</strong></span>
-        <div class="step-dots" id="step-dots">
-          <div class="step-dot" id="dot-1"></div>
-          <div class="step-dot" id="dot-2"></div>
-          <div class="step-dot" id="dot-3"></div>
-          <div class="step-dot" id="dot-4"></div>
-          <div class="step-dot" id="dot-5"></div>
-          <div class="step-dot" id="dot-6"></div>
-        </div>
+    <!-- Phase jump buttons -->
+    <div class="step-indicator">
+      <span class="phase-jump-label">Μετάβαση σε φάση:</span>
+      <div class="phase-jump-row">
+        <button class="phase-btn" data-phase="1">1</button>
+        <button class="phase-btn" data-phase="2">2</button>
+        <button class="phase-btn" data-phase="3">3</button>
+        <button class="phase-btn" data-phase="4">4</button>
+        <button class="phase-btn" data-phase="5">5</button>
+        <button class="phase-btn" data-phase="6">6</button>
+        <button class="phase-btn" data-phase="7">7</button>
+        <button class="phase-btn" data-phase="8">8</button>
       </div>
     </div>
-  </section>
 
-  <section class="section">
-    <p class="section-label">Θεωρία</p>
-    <h2>Γιατί είναι το 3n βέλτιστο;</h2>
-    <p>
-      Εδω θα υπάρχει μια αναφορά στην θεωρία
-    </p>
-  </section>
+    <!-- Canvas -->
+    <div class="grid-wrap">
+      <canvas id="grid-canvas" width="560" height="560"></canvas>
+    </div>
+
+    <!-- Phase info panel -->
+    <div class="phase-panel">
+      <div class="phase-badge" id="phase-badge">&mdash;</div>
+      <div class="phase-info">
+        <div class="phase-title-text" id="phase-title-text">Έτοιμο</div>
+        <div class="phase-desc-text" id="phase-desc-text">Επιλέξτε μέγεθος πλέγματος και πατήστε Αναπαραγωγή.</div>
+      </div>
+      <div class="phase-dots-col" id="phase-dots">
+        <div class="phase-dot" id="pdot-1"></div>
+        <div class="phase-dot" id="pdot-2"></div>
+        <div class="phase-dot" id="pdot-3"></div>
+        <div class="phase-dot" id="pdot-4"></div>
+        <div class="phase-dot" id="pdot-5"></div>
+        <div class="phase-dot" id="pdot-6"></div>
+        <div class="phase-dot" id="pdot-7"></div>
+        <div class="phase-dot" id="pdot-8"></div>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="step-indicator">
+      <span class="step-badge">Φάση: <strong id="phase-label">&mdash;</strong></span>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:#1a4a2a"></div>
+        <span>Ταξινομημένο</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:#ff9a3c"></div>
+        <span>Υπό σύγκριση</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:#1c2230"></div>
+        <span>Αταξινόμητο</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:rgba(108,156,220,0.4)"></div>
+        <span>Όριο block</span>
+      </div>
+    </div>
+
+  </div>
 
 </main>
 
-<footer>
-  <p>
-    C.P. Schnorr (Univ. Frankfurt) &amp; A. Shamir (Weizmann Institute) ·
-    <a href="https://dl.acm.org/doi/10.1145/12130.12156" target="_blank">STOC '86</a>
-  </p>
-  <p>Διαδραστική οπτικοποίηση — ελεύθερη φιλοξενία σε GitHub Pages, Netlify, Vercel κλπ.</p>
-</footer>
 
 <script>
+// ---------------------------------------------------------------------------
+// Phase metadata (Leighton 1.4 descriptions)
+// ---------------------------------------------------------------------------
+const PHASES = [
+  { num: 1,
+    title: 'Φάση 1 — Ταξινόμηση blocks σε snakelike διάταξη',
+    desc:  'Το πλέγμα χωρίζεται σε N^{1/4} blocks μεγέθους N^{3/8}×N^{3/8}. Κάθε block ταξινομείται παράλληλα σε snakelike διάταξη.'
+  },
+  { num: 2,
+    title: 'Φάση 2 — N^{1/8}-way unshuffle στηλών',
+    desc:  'Οι στήλες κάθε block ανακατανέμονται ομοιόμορφα μεταξύ των N^{1/8} κάθετων φετών (vertical slices). Κάθε slice λαμβάνει ίσο μέρος από τις στήλες κάθε block.'
+  },
+  { num: 3,
+    title: 'Φάση 3 — Εκ νέου ταξινόμηση blocks',
+    desc:  'Μετά την αναδιάταξη των στηλών, κάθε block ταξινομείται ξανά παράλληλα σε snakelike διάταξη.'
+  },
+  { num: 4,
+    title: 'Φάση 4 — Ταξινόμηση στηλών σε γραμμική διάταξη',
+    desc:  'Κάθε στήλη του πλέγματος ταξινομείται αύξουσα από άνω προς κάτω.'
+  },
+  { num: 5,
+    title: 'Φάση 5 — Ταξινόμηση ζευγών blocks 1+2, 3+4 … ανά slice',
+    desc:  'Σε κάθε κάθετη φέτα (vertical slice), τα blocks 1+2, 3+4 κ.λπ. ταξινομούνται συλλογικά σε snakelike διάταξη.'
+  },
+  { num: 6,
+    title: 'Φάση 6 — Ταξινόμηση ζευγών blocks 2+3, 4+5 … ανά slice',
+    desc:  'Σε κάθε κάθετη φέτα (vertical slice), τα blocks 2+3, 4+5 κ.λπ. ταξινομούνται συλλογικά σε snakelike διάταξη.'
+  },
+  { num: 7,
+    title: 'Φάση 7 — Ταξινόμηση γραμμών κατά snake',
+    desc:  'Κάθε γραμμή ταξινομείται σύμφωνα με την κατεύθυνση του συνολικού N-κυτταρικού φιδιού: ζυγές γραμμές αύξουσα (→), μονές γραμμές φθίνουσα (←).'
+  },
+  { num: 8,
+    title: 'Φάση 8 — Odd-even transposition στο συνολικό snake',
+    desc:  '2·N^{3/8} βήματα odd-even transposition sort πάνω στο συνολικό N-κυτταρικό φίδι (snakelike). Το πλέγμα ταξινομείται πλήρως.'
+  }
+];
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
 const canvas = document.getElementById('grid-canvas');
-const ctx = canvas.getContext('2d');
+const ctx    = canvas.getContext('2d');
 
-let N = 16;
-let grid = [];           // cell values (null for N=4096)
-let ops = [];
-let opIdx = 0;
-let playing = false;
-let playTimer = null;
-let comparisons = 0, swaps = 0;
-let highlights = new Set();   // Set of "r,c" strings currently orange
-let sortedCells = new Set();  // Set of "r,c" strings permanently green (N=16)
-let blockStates = {};         // "br,bc" → 'unsorted'|'sorting'|'sorted' (N=256/4096)
-let currentPhase = 'Έτοιμο';
-let currentStep = 0;
+let N            = 16;
+let grid         = [];
+let ops          = [];
+let opIdx        = 0;
+let playing      = false;
+let playTimer    = null;
+let parallelStep = 0;
 
-const PHASE_READY = 'Έτοιμο';
-const PHASE_STEP1 = 'Βήμα 1 — Παράλληλη ταξινόμηση blocks';
-const PHASE_DONE  = 'Βήμα 1 ολοκληρώθηκε ✓';
+let highlights   = new Set();
+let sortedCells  = new Set();
+let blockStates  = {};
+let currentPhaseNum = 0;
 
-// n = 2^(4q)  =>  blockSize = n^(3/4) = 2^(3q)
-function getBlockSize(n) {
-  return Math.round(Math.pow(n, 0.75));
-}
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function getBlockSize(n) { return Math.round(Math.pow(n, 0.75)); }
+function getNumBlocks(n) { return Math.round(n / getBlockSize(n)); }
+function getNumSlices(n) { return Math.round(Math.pow(n, 0.25)); }
 
-function getNumBlocks(n) {
-  return n / getBlockSize(n);
-}
-
-// Snake-order indices within a block starting at (r0,c0) ending at (r1,c1)
+// Snake-order indices within rectangle (r0,c0)-(r1,c1)
 function getSnakeIndices(r0, c0, r1, c1) {
   const idx = [];
   for (let r = r0; r <= r1; r++) {
-    const fwd = ((r - r0) % 2 === 0);
+    const fwd = (r - r0) % 2 === 0;
     for (let ci = 0; ci <= c1 - c0; ci++) {
       const c = fwd ? c0 + ci : c1 - ci;
       idx.push([r, c]);
@@ -585,136 +578,272 @@ function getSnakeIndices(r0, c0, r1, c1) {
   return idx;
 }
 
-// ─── Grid initialisation ────────────────────────────────────────────────────
-
+// ---------------------------------------------------------------------------
+// Grid init — always binary 0/1
+// ---------------------------------------------------------------------------
 function initGrid() {
   N = parseInt(document.getElementById('grid-size').value);
   const bs = getBlockSize(N);
   const nb = getNumBlocks(N);
 
-  highlights   = new Set();
-  sortedCells  = new Set();
-  blockStates  = {};
-  comparisons  = 0;
-  swaps        = 0;
-  currentPhase = PHASE_READY;
-  currentStep  = 0;
+  highlights       = new Set();
+  sortedCells      = new Set();
+  blockStates      = {};
+  currentPhaseNum  = 0;
+  parallelStep     = 0;
 
-  if (N <= 256) {
-    grid = Array.from({ length: N * N }, (_, i) => i + 1);
-    for (let i = grid.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [grid[i], grid[j]] = [grid[j], grid[i]];
-    }
-  } else {
-    grid = null;  // N=4096: too large, block-level display only
+  const total = N * N;
+
+  // Always binary 0/1
+  grid = Array.from({ length: total }, (_, i) => i < Math.floor(total / 2) ? 0 : 1);
+  // Shuffle
+  for (let i = grid.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [grid[i], grid[j]] = [grid[j], grid[i]];
   }
 
   ops   = buildOps(N, bs, nb);
   opIdx = 0;
 
-  document.getElementById('btn-play').disabled = false;
-  document.getElementById('btn-step').disabled = false;
-  document.getElementById('btn-play').textContent = '▶ Αναπαραγωγή';
+  document.getElementById('btn-play').disabled  = false;
+  document.getElementById('btn-step').disabled  = false;
+  document.getElementById('btn-play').textContent = '\u25B6 Αναπαραγωγή';
 
   updateUI();
+  updatePhaseButtons();
   drawGrid();
 }
 
-// ─── Build operation list ────────────────────────────────────────────────────
-
+// ---------------------------------------------------------------------------
+// Build ops for all 8 phases
+// ---------------------------------------------------------------------------
 function buildOps(n, bs, nb) {
   const list = [];
-  list.push({ type: 'phase', phase: PHASE_STEP1, step: 1 });
+  const k    = getNumSlices(n);
+  const sw   = Math.floor(n / k);
+  const g    = grid.slice();
 
-  if (n === 16) {
-    // ── Parallel cell-level animation ───────────────────────────────────────
-    // All blocks run bubble sort in lockstep: at each step j of each outer
-    // pass i, ALL blocks do their comparison simultaneously (one op covers
-    // every block). After each outer pass, ALL blocks mark their sorted cell
-    // green at the same time.
-
-    const g = grid.slice();  // working copy
-    const numB = nb * nb;
-
-    // Gather snake indices + working value arrays for every block
-    const allIdx  = [];
-    const allVals = [];
-    for (let br = 0; br < nb; br++) {
-      for (let bc = 0; bc < nb; bc++) {
-        const r0 = br * bs, r1 = r0 + bs - 1;
-        const c0 = bc * bs, c1 = c0 + bs - 1;
-        const idx = getSnakeIndices(r0, c0, r1, c1);
-        allIdx.push(idx);
-        allVals.push(idx.map(([r, c]) => g[r * n + c]));
-      }
-    }
-
-    const len = bs * bs; // elements per block (64 for N=16)
+  // -- Utility: parallel bubble sort over multiple index sequences --
+  function parallelBubble(regions, doGreen) {
+    if (!regions.length) return;
+    const len  = regions[0].length;
+    const vals = regions.map(idx => idx.map(([r, c]) => g[r * n + c]));
 
     for (let i = 0; i < len - 1; i++) {
       for (let j = 0; j < len - 1 - i; j++) {
-        // One op = all blocks compare position j simultaneously
         const actions = [];
-        for (let b = 0; b < numB; b++) {
-          const idx  = allIdx[b];
-          const vals = allVals[b];
+        for (let ri = 0; ri < regions.length; ri++) {
+          const idx = regions[ri];
+          const v   = vals[ri];
           const [ra, ca] = idx[j];
           const [rb, cb] = idx[j + 1];
-          const isSwap = vals[j] > vals[j + 1];
+          const isSwap = v[j] > v[j + 1];
           if (isSwap) {
-            [vals[j], vals[j + 1]] = [vals[j + 1], vals[j]];
-            [g[ra * n + ca], g[rb * n + cb]] = [g[rb * n + cb], g[ra * n + ca]];
+            [v[j], v[j + 1]] = [v[j + 1], v[j]];
+            g[ra * n + ca] = v[j]; g[rb * n + cb] = v[j + 1];
           }
           actions.push({ ra, ca, rb, cb, isSwap });
         }
         list.push({ type: 'parallel-step', actions });
       }
-      // After outer pass i: position (len-1-i) in EVERY block is now sorted
-      list.push({
-        type: 'parallel-cell-sorted',
-        cells: allIdx.map(idx => idx[len - 1 - i])
-      });
-    }
-    // Position 0 in every block is the last remaining sorted cell
-    list.push({
-      type: 'parallel-cell-sorted',
-      cells: allIdx.map(idx => idx[0])
-    });
-
-  } else {
-    // ── Parallel block-level animation (N=256 / N=4096) ────────────────────
-    // All blocks turn orange together, sort (instantly), then all turn green.
-
-    const g = (n <= 256) ? grid.slice() : null;
-    list.push({ type: 'all-blocks-animating' });
-
-    if (g) {
-      const allCells = [];
-      for (let br = 0; br < nb; br++) {
-        for (let bc = 0; bc < nb; bc++) {
-          const r0 = br * bs, r1 = r0 + bs - 1;
-          const c0 = bc * bs, c1 = c0 + bs - 1;
-          const indices = getSnakeIndices(r0, c0, r1, c1);
-          const vals = indices.map(([r, c]) => g[r * n + c]).sort((a, b) => a - b);
-          indices.forEach(([r, c], i) => {
-            g[r * n + c] = vals[i];
-            allCells.push({ r, c, v: vals[i] });
-          });
-        }
+      if (doGreen) {
+        list.push({ type: 'parallel-cell-sorted',
+          cells: regions.map(idx => idx[len - 1 - i]) });
       }
-      list.push({ type: 'all-blocks-done', cells: allCells });
-    } else {
-      list.push({ type: 'all-blocks-done', cells: null });
+    }
+    if (doGreen) {
+      list.push({ type: 'parallel-cell-sorted',
+        cells: regions.map(idx => idx[0]) });
     }
   }
 
-  list.push({ type: 'done', phase: PHASE_DONE });
+  // -- Block regions helper --
+  function allBlockRegions() {
+    const r = [];
+    for (let br = 0; br < nb; br++)
+      for (let bc = 0; bc < nb; bc++)
+        r.push(getSnakeIndices(br * bs, bc * bs, (br + 1) * bs - 1, (bc + 1) * bs - 1));
+    return r;
+  }
+
+  // -- Block-level animation for N=256 --
+  function blockLevelSort(pattern) {
+    list.push({ type: 'blocks-animating', pattern });
+    list.push({ type: 'blocks-done', gridSnapshot: g.slice(), pattern });
+  }
+
+  // -- Sort g in-place for a list of index sequences --
+  function sortRegions(regions) {
+    for (const idx of regions) {
+      const sorted = idx.map(([r, c]) => g[r * n + c]).sort((a, b) => a - b);
+      idx.forEach(([r, c], i) => { g[r * n + c] = sorted[i]; });
+    }
+  }
+
+  // ===== PHASE 1 — Sort each block in snakelike order =====
+  list.push({ type: 'phase', phaseNum: 1 });
+
+  if (n === 16) {
+    parallelBubble(allBlockRegions(), true);
+  } else {
+    sortRegions(allBlockRegions());
+    blockLevelSort('all-blocks');
+  }
+
+  // ===== PHASE 2 — N^(1/8)-way unshuffle of columns =====
+  list.push({ type: 'phase', phaseNum: 2 });
+  list.push({ type: 'clear-sorted' });
+
+  // Unshuffle: col c -> new position (c % k)*sw + floor(c/k)
+  const newG = g.slice();
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++) {
+      const nc = (c % k) * sw + Math.floor(c / k);
+      newG[r * n + nc] = g[r * n + c];
+    }
+  for (let i = 0; i < g.length; i++) g[i] = newG[i];
+  list.push({ type: 'unshuffle-done', gridSnapshot: g.slice() });
+
+  // ===== PHASE 3 — Sort each block again =====
+  list.push({ type: 'phase', phaseNum: 3 });
+  list.push({ type: 'clear-sorted' });
+
+  if (n === 16) {
+    parallelBubble(allBlockRegions(), true);
+  } else {
+    sortRegions(allBlockRegions());
+    blockLevelSort('all-blocks');
+  }
+
+  // ===== PHASE 4 — Sort each column in linear order =====
+  list.push({ type: 'phase', phaseNum: 4 });
+  list.push({ type: 'clear-sorted' });
+
+  if (n === 16) {
+    const colRegions = [];
+    for (let c = 0; c < n; c++) {
+      const idx = [];
+      for (let r = 0; r < n; r++) idx.push([r, c]);
+      colRegions.push(idx);
+    }
+    parallelBubble(colRegions, true);
+  } else {
+    for (let c = 0; c < n; c++) {
+      const col = Array.from({ length: n }, (_, r) => g[r * n + c]).sort((a, b) => a - b);
+      col.forEach((v, r) => { g[r * n + c] = v; });
+    }
+    blockLevelSort('columns');
+  }
+
+  // ===== PHASE 5 — Collectively sort blocks 1+2, 3+4 of each vertical slice =====
+  list.push({ type: 'phase', phaseNum: 5 });
+
+  const ph5Regions = [];
+  for (let vs = 0; vs < k; vs++) {
+    const c0 = vs * sw, c1 = c0 + sw - 1;
+    for (let p = 0; p + 1 < nb; p += 2) {
+      const r0 = p * bs, r1 = Math.min((p + 2) * bs - 1, n - 1);
+      ph5Regions.push(getSnakeIndices(r0, c0, r1, c1));
+    }
+  }
+
+  if (n === 16) {
+    sortRegions(ph5Regions);
+    list.push({ type: 'unshuffle-done', gridSnapshot: g.slice() });
+  } else {
+    sortRegions(ph5Regions);
+    blockLevelSort('odd-pairs');
+  }
+
+  // ===== PHASE 6 — Collectively sort blocks 2+3, 4+5 of each vertical slice =====
+  list.push({ type: 'phase', phaseNum: 6 });
+
+  const ph6Regions = [];
+  for (let vs = 0; vs < k; vs++) {
+    const c0 = vs * sw, c1 = c0 + sw - 1;
+    for (let p = 1; p + 1 < nb; p += 2) {
+      const r0 = p * bs, r1 = Math.min((p + 2) * bs - 1, n - 1);
+      ph6Regions.push(getSnakeIndices(r0, c0, r1, c1));
+    }
+  }
+
+  if (ph6Regions.length === 0) {
+    list.push({ type: 'phase-noop' });
+  } else if (n === 16) {
+    sortRegions(ph6Regions);
+    list.push({ type: 'unshuffle-done', gridSnapshot: g.slice() });
+  } else {
+    sortRegions(ph6Regions);
+    blockLevelSort('even-pairs');
+  }
+
+  // ===== PHASE 7 — Sort each row in linear order (snake direction) =====
+  list.push({ type: 'phase', phaseNum: 7 });
+
+  if (n === 16) {
+    const rowRegions = [];
+    for (let r = 0; r < n; r++) {
+      const ascending = (r % 2 === 0);
+      const idx = [];
+      if (ascending) {
+        for (let c = 0; c < n; c++) idx.push([r, c]);
+      } else {
+        for (let c = n - 1; c >= 0; c--) idx.push([r, c]);
+      }
+      rowRegions.push(idx);
+    }
+    parallelBubble(rowRegions, true);
+  } else {
+    for (let r = 0; r < n; r++) {
+      const row = Array.from({ length: n }, (_, c) => g[r * n + c]).sort((a, b) => a - b);
+      if (r % 2 === 0) {
+        row.forEach((v, c) => { g[r * n + c] = v; });
+      } else {
+        row.reverse().forEach((v, c) => { g[r * n + c] = v; });
+      }
+    }
+    blockLevelSort('rows');
+  }
+
+  // ===== PHASE 8 — 2*N^{3/8} steps of odd-even transposition on overall snake =====
+  list.push({ type: 'phase', phaseNum: 8 });
+
+  if (n === 16) {
+    const snakeIdx   = getSnakeIndices(0, 0, n - 1, n - 1);
+    const totalSteps = 2 * bs;
+    const vals       = snakeIdx.map(([r, c]) => g[r * n + c]);
+
+    for (let t = 0; t < totalSteps; t++) {
+      const start   = t % 2;
+      const actions = [];
+      for (let j = start; j + 1 < snakeIdx.length; j += 2) {
+        const [ra, ca] = snakeIdx[j];
+        const [rb, cb] = snakeIdx[j + 1];
+        const isSwap   = vals[j] > vals[j + 1];
+        if (isSwap) {
+          [vals[j], vals[j + 1]] = [vals[j + 1], vals[j]];
+          g[ra * n + ca] = vals[j]; g[rb * n + cb] = vals[j + 1];
+        }
+        actions.push({ ra, ca, rb, cb, isSwap });
+      }
+      list.push({ type: 'parallel-step', actions });
+    }
+  } else {
+    const snakeIdx = getSnakeIndices(0, 0, n - 1, n - 1);
+    const sorted   = snakeIdx.map(([r, c]) => g[r * n + c]).sort((a, b) => a - b);
+    snakeIdx.forEach(([r, c], i) => { g[r * n + c] = sorted[i]; });
+    blockLevelSort('snake');
+  }
+
+  // -- Mark all cells sorted & done --
+  list.push({ type: 'all-sorted', gridSnapshot: g.slice() });
+  list.push({ type: 'done' });
   return list;
 }
 
-// ─── Step forward ────────────────────────────────────────────────────────────
-
+// ---------------------------------------------------------------------------
+// Step forward
+// ---------------------------------------------------------------------------
 function stepForward() {
   if (opIdx >= ops.length) return;
   const op = ops[opIdx++];
@@ -722,42 +851,62 @@ function stepForward() {
   switch (op.type) {
 
     case 'phase':
-      currentPhase = op.phase;
-      currentStep  = op.step;
-      highlights   = new Set();
+      currentPhaseNum = op.phaseNum;
+      highlights      = new Set();
+      parallelStep    = 0;
       updateUI();
+      updatePhaseButtons();
       drawGrid();
       break;
 
-    // All blocks do their j-th comparison of outer pass i simultaneously
     case 'parallel-step': {
       highlights = new Set();
       for (const { ra, ca, rb, cb, isSwap } of op.actions) {
         highlights.add(`${ra},${ca}`);
         highlights.add(`${rb},${cb}`);
         if (isSwap) {
-          [grid[ra * N + ca], grid[rb * N + cb]] = [grid[rb * N + cb], grid[ra * N + ca]];
-          swaps++;
-        } else {
-          comparisons++;
+          if (grid) [grid[ra * N + ca], grid[rb * N + cb]] = [grid[rb * N + cb], grid[ra * N + ca]];
         }
       }
+      parallelStep++;
       updateUI();
       drawGrid();
       break;
     }
 
-    // All blocks place their (len-1-i)-th sorted cell simultaneously
     case 'parallel-cell-sorted':
-      for (const [r, c] of op.cells) {
-        sortedCells.add(`${r},${c}`);
-      }
+      for (const [r, c] of op.cells) sortedCells.add(`${r},${c}`);
       highlights = new Set();
       drawGrid();
       break;
 
-    // Block-mode (N=256/4096): all blocks turn orange at once
-    case 'all-blocks-animating': {
+    case 'clear-sorted':
+      sortedCells = new Set();
+      drawGrid();
+      break;
+
+    case 'unshuffle-done':
+      if (op.gridSnapshot && grid) {
+        for (let i = 0; i < grid.length; i++) grid[i] = op.gridSnapshot[i];
+      }
+      highlights = new Set();
+      if (grid) {
+        for (let r = 0; r < N; r++)
+          for (let c = 0; c < N; c++)
+            highlights.add(`${r},${c}`);
+      }
+      parallelStep = 0;
+      updateUI();
+      drawGrid();
+      break;
+
+    case 'phase-noop':
+      parallelStep = 0;
+      updateUI();
+      drawGrid();
+      break;
+
+    case 'blocks-animating': {
       const nb = getNumBlocks(N);
       for (let br = 0; br < nb; br++)
         for (let bc = 0; bc < nb; bc++)
@@ -767,35 +916,134 @@ function stepForward() {
       break;
     }
 
-    // Block-mode: all blocks turn green at once (values applied for N=256)
-    case 'all-blocks-done': {
-      if (op.cells) op.cells.forEach(({ r, c, v }) => { grid[r * N + c] = v; });
+    case 'blocks-done': {
+      if (op.gridSnapshot && grid) {
+        for (let i = 0; i < grid.length; i++) grid[i] = op.gridSnapshot[i];
+      }
       const nb = getNumBlocks(N);
       for (let br = 0; br < nb; br++)
         for (let bc = 0; bc < nb; bc++)
           blockStates[`${br},${bc}`] = 'sorted';
       highlights = new Set();
+      parallelStep = 0;
+      updateUI();
       drawGrid();
       break;
     }
 
+    case 'all-sorted':
+      if (op.gridSnapshot && grid) {
+        for (let i = 0; i < grid.length; i++) grid[i] = op.gridSnapshot[i];
+      }
+      highlights = new Set();
+      for (let r = 0; r < N; r++)
+        for (let c = 0; c < N; c++)
+          sortedCells.add(`${r},${c}`);
+      drawGrid();
+      break;
+
     case 'done':
-      currentPhase = op.phase;
-      highlights   = new Set();
-      playing      = false;
+      highlights = new Set();
+      playing    = false;
       clearTimeout(playTimer);
-      document.getElementById('btn-play').textContent = '▶ Αναπαραγωγή';
-      document.getElementById('btn-play').disabled = true;
-      document.getElementById('btn-step').disabled = true;
+      document.getElementById('btn-play').textContent = '\u25B6 Αναπαραγωγή';
+      document.getElementById('btn-play').disabled    = true;
+      document.getElementById('btn-step').disabled    = true;
       updateUI();
+      updatePhaseButtons();
       drawGrid();
       break;
   }
 }
 
-// ─── Draw ────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Skip to next phase
+// ---------------------------------------------------------------------------
+let suppressDraw = false;
 
+function skipToNextPhase() {
+  if (opIdx >= ops.length) return;
+  playing = false;
+  clearTimeout(playTimer);
+  document.getElementById('btn-play').textContent = '\u25B6 Αναπαραγωγή';
+
+  suppressDraw = true;
+
+  // If sitting on a 'phase' marker, consume it first
+  if (ops[opIdx] && ops[opIdx].type === 'phase') stepForward();
+
+  // Fast-forward until the next 'phase' or 'done'
+  while (opIdx < ops.length) {
+    const next = ops[opIdx];
+    if (next.type === 'phase' || next.type === 'done') break;
+    stepForward();
+  }
+
+  suppressDraw = false;
+  highlights   = new Set();
+  updateUI();
+  updatePhaseButtons();
+  drawGrid();
+}
+
+// ---------------------------------------------------------------------------
+// Jump to a specific phase (1-8)
+// ---------------------------------------------------------------------------
+function jumpToPhase(targetPhase) {
+  // Stop any playback
+  playing = false;
+  clearTimeout(playTimer);
+  document.getElementById('btn-play').textContent = '\u25B6 Αναπαραγωγή';
+
+  // Re-initialize the grid from scratch (fresh random shuffle + rebuild ops)
+  N = parseInt(document.getElementById('grid-size').value);
+  const bs = getBlockSize(N);
+  const nb = getNumBlocks(N);
+
+  highlights       = new Set();
+  sortedCells      = new Set();
+  blockStates      = {};
+  currentPhaseNum  = 0;
+  parallelStep     = 0;
+
+  const total = N * N;
+  grid = Array.from({ length: total }, (_, i) => i < Math.floor(total / 2) ? 0 : 1);
+  for (let i = grid.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [grid[i], grid[j]] = [grid[j], grid[i]];
+  }
+
+  ops   = buildOps(N, bs, nb);
+  opIdx = 0;
+
+  document.getElementById('btn-play').disabled  = false;
+  document.getElementById('btn-step').disabled  = false;
+
+  // Now fast-forward to the target phase
+  suppressDraw = true;
+
+  while (opIdx < ops.length) {
+    const op = ops[opIdx];
+    if (op.type === 'phase' && op.phaseNum === targetPhase) {
+      // Consume the phase marker so we land AT the start of this phase
+      stepForward();
+      break;
+    }
+    stepForward();
+  }
+
+  suppressDraw = false;
+  highlights   = new Set();
+  updateUI();
+  updatePhaseButtons();
+  drawGrid();
+}
+
+// ---------------------------------------------------------------------------
+// Draw
+// ---------------------------------------------------------------------------
 function drawGrid() {
+  if (suppressDraw) return;
   const size = Math.min(560, window.innerWidth - 48);
   canvas.width  = size;
   canvas.height = size;
@@ -808,166 +1056,153 @@ function drawGrid() {
   ctx.clearRect(0, 0, size, size);
 
   if (N === 16) {
-    // ── Individual cell view ────────────────────────────────────────────────
+    // -- Individual cells --
     for (let r = 0; r < N; r++) {
       for (let c = 0; c < N; c++) {
-        const x   = c * cell;
-        const y   = r * cell;
+        const x   = c * cell, y = r * cell;
         const key = `${r},${c}`;
         const act = highlights.has(key);
         const srt = sortedCells.has(key);
         const val = grid[r * N + c];
 
-        // Background
         ctx.fillStyle = act ? '#3d2000' : srt ? '#1a4a2a' : '#1c2230';
         ctx.fillRect(x, y, cell, cell);
 
-        // Number
-        const fs = Math.max(8, Math.min(13, cell * 0.38));
+        const fs = Math.max(7, Math.min(12, cell * 0.36));
         ctx.font         = `${fs}px 'DM Mono', monospace`;
         ctx.textAlign    = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillStyle    = act ? '#ff9a3c' : srt ? '#7ecba1' : '#4a5470';
+        ctx.fillStyle    = act ? '#ff9a3c' : srt ? '#7ecba1' : '#3a4a60';
         ctx.fillText(val, x + cell / 2, y + cell / 2);
 
-        // Cell border
         ctx.strokeStyle = '#252e40';
         ctx.lineWidth   = 0.5;
         ctx.strokeRect(x + 0.25, y + 0.25, cell - 0.5, cell - 0.5);
       }
     }
-
-    // Block boundaries
+    // Block borders
     ctx.strokeStyle = 'rgba(108,156,220,0.55)';
     ctx.lineWidth   = 1.8;
-    for (let br = 0; br < nb; br++) {
-      for (let bc = 0; bc < nb; bc++) {
+    for (let br = 0; br < nb; br++)
+      for (let bc = 0; bc < nb; bc++)
         ctx.strokeRect(bc * bpx, br * bpx, bpx, bpx);
-      }
-    }
 
   } else if (N === 256) {
-    // ── Heatmap (individual pixels) with block-state overlays ──────────────
-    const total = N * N;
+    // -- Black/white binary view (0 = black, 1 = white) --
+    const pw = Math.max(1, cell);
     for (let r = 0; r < N; r++) {
       for (let c = 0; c < N; c++) {
-        const x  = c * cell;
-        const y  = r * cell;
-        const t  = (grid[r * N + c] - 1) / (total - 1); // 0..1
-        const br = Math.floor(r / bs);
-        const bc = Math.floor(c / bs);
-        const st = blockStates[`${br},${bc}`] || 'unsorted';
-
-        if (st === 'sorted') {
-          ctx.fillStyle = `rgb(${Math.round(15 + t * 35)},${Math.round(80 + t * 130)},${Math.round(45 + t * 65)})`;
-        } else if (st === 'sorting') {
-          ctx.fillStyle = `rgb(${Math.round(120 + t * 100)},${Math.round(60 + t * 80)},${Math.round(10)})`;
-        } else {
-          ctx.fillStyle = `rgb(${Math.round(35 + t * 55)},${Math.round(45 + t * 65)},${Math.round(85 + t * 75)})`;
-        }
-        ctx.fillRect(x, y, Math.max(1, cell), Math.max(1, cell));
+        ctx.fillStyle = grid[r * N + c] === 1 ? '#e8eaf0' : '#0b0e14';
+        ctx.fillRect(c * cell, r * cell, pw, pw);
       }
     }
     // Block borders
-    ctx.strokeStyle = 'rgba(108,156,220,0.4)';
+    ctx.strokeStyle = 'rgba(108,156,220,0.35)';
     ctx.lineWidth   = 0.5;
-    for (let br = 0; br < nb; br++) {
-      for (let bc = 0; bc < nb; bc++) {
+    for (let br = 0; br < nb; br++)
+      for (let bc = 0; bc < nb; bc++)
         ctx.strokeRect(bc * bpx + 0.25, br * bpx + 0.25, bpx - 0.5, bpx - 0.5);
-      }
-    }
-
-  } else {
-    // ── Block rectangles only (N=4096) ─────────────────────────────────────
-    for (let br = 0; br < nb; br++) {
-      for (let bc = 0; bc < nb; bc++) {
-        const x  = bc * bpx;
-        const y  = br * bpx;
-        const st = blockStates[`${br},${bc}`] || 'unsorted';
-        ctx.fillStyle = st === 'sorted'  ? '#1a4a2a'
-                      : st === 'sorting' ? '#3d2000'
-                      :                   '#1c2230';
-        ctx.fillRect(x, y, bpx, bpx);
-
-        ctx.strokeStyle = 'rgba(108,156,220,0.5)';
-        ctx.lineWidth   = 1;
-        ctx.strokeRect(x + 0.5, y + 0.5, bpx - 1, bpx - 1);
-
-        if (bpx > 30) {
-          ctx.fillStyle    = st === 'unsorted' ? '#3a4060'
-                           : st === 'sorting'  ? '#ff9a3c'
-                           :                    '#7ecba1';
-          ctx.font         = `${Math.max(10, Math.round(bpx * 0.14))}px 'DM Mono', monospace`;
-          ctx.textAlign    = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(`(${br},${bc})`, x + bpx / 2, y + bpx / 2);
-        }
-      }
-    }
   }
 }
 
-// ─── UI helpers ──────────────────────────────────────────────────────────────
-
+// ---------------------------------------------------------------------------
+// UI updates
+// ---------------------------------------------------------------------------
 function updateUI() {
-  document.getElementById('phase-label').textContent = currentPhase;
-  document.getElementById('cmp-count').textContent   = comparisons.toLocaleString();
-  document.getElementById('swap-count').textContent  = swaps.toLocaleString();
+  const p = PHASES.find(ph => ph.num === currentPhaseNum);
+  const badge = document.getElementById('phase-badge');
 
-  for (let i = 1; i <= 6; i++) {
-    const dot = document.getElementById(`dot-${i}`);
-    dot.className = 'step-dot';
-    if (i < currentStep)      dot.classList.add('done');
-    else if (i === currentStep) dot.classList.add('current');
+  if (!p) {
+    badge.textContent = '\u2014';
+    badge.className   = 'phase-badge';
+    document.getElementById('phase-title-text').textContent = 'Έτοιμο';
+    document.getElementById('phase-desc-text').textContent  =
+      'Επιλέξτε μέγεθος πλέγματος και πατήστε Αναπαραγωγή.';
+    document.getElementById('phase-label').textContent      = '\u2014';
+  } else {
+    badge.textContent = p.num;
+    badge.className   = opIdx >= ops.length ? 'phase-badge done' : 'phase-badge active';
+    document.getElementById('phase-title-text').textContent = p.title;
+    document.getElementById('phase-desc-text').textContent  = p.desc;
+    document.getElementById('phase-label').textContent      = `${p.num} / 8`;
   }
 
-  document.querySelectorAll('.step').forEach(el => {
-    el.classList.toggle('active', parseInt(el.dataset.step) === currentStep);
+  // Phase dots
+  for (let i = 1; i <= 8; i++) {
+    const dot = document.getElementById(`pdot-${i}`);
+    dot.className = 'phase-dot';
+    if (i < currentPhaseNum) dot.classList.add('done');
+    else if (i === currentPhaseNum) dot.classList.add('current');
+  }
+}
+
+// Update phase jump button styles
+function updatePhaseButtons() {
+  document.querySelectorAll('.phase-btn').forEach(btn => {
+    const ph = parseInt(btn.dataset.phase);
+    btn.className = 'phase-btn';
+    if (ph < currentPhaseNum) btn.classList.add('done');
+    else if (ph === currentPhaseNum) btn.classList.add('active');
   });
 }
 
-function getSpeed() {
-  return 950 - parseInt(document.getElementById('speed').value);
-}
+function getSpeed() { return 980 - parseInt(document.getElementById('speed').value); }
 
-// ─── Playback ────────────────────────────────────────────────────────────────
-
+// ---------------------------------------------------------------------------
+// Playback
+// ---------------------------------------------------------------------------
 function togglePlay() {
   if (opIdx >= ops.length) return;
   playing = !playing;
-  document.getElementById('btn-play').textContent = playing ? '⏸ Παύση' : '▶ Αναπαραγωγή';
+  document.getElementById('btn-play').textContent = playing ? '\u23F8 Παύση' : '\u25B6 Αναπαραγωγή';
   if (playing) runPlay();
 }
 
 function runPlay() {
   if (!playing || opIdx >= ops.length) {
     playing = false;
-    document.getElementById('btn-play').textContent = '▶ Αναπαραγωγή';
+    document.getElementById('btn-play').textContent = '\u25B6 Αναπαραγωγή';
     return;
   }
   stepForward();
   const last = ops[opIdx - 1];
   if (!last) { runPlay(); return; }
 
-  // No delay on structural markers; brief pause on cell-sorted for green flash visibility
+  // Pause automatically when entering a new phase
   if (last.type === 'phase') {
+    playing = false;
+    document.getElementById('btn-play').textContent = '\u25B6 Αναπαραγωγή';
+    return;
+  }
+
+  if (last.type === 'clear-sorted' || last.type === 'phase-noop') {
     runPlay();
+  } else if (last.type === 'unshuffle-done') {
+    playTimer = setTimeout(() => {
+      highlights = new Set();
+      drawGrid();
+      runPlay();
+    }, Math.max(80, getSpeed()));
   } else {
     playTimer = setTimeout(runPlay, getSpeed());
   }
 }
 
-// ─── Event listeners ─────────────────────────────────────────────────────────
-
+// ---------------------------------------------------------------------------
+// Event listeners
+// ---------------------------------------------------------------------------
 document.getElementById('btn-play').addEventListener('click', togglePlay);
 
 document.getElementById('btn-step').addEventListener('click', () => {
   if (playing) {
     playing = false;
     clearTimeout(playTimer);
-    document.getElementById('btn-play').textContent = '▶ Αναπαραγωγή';
+    document.getElementById('btn-play').textContent = '\u25B6 Αναπαραγωγή';
   }
   stepForward();
+  if (ops[opIdx - 1] && ops[opIdx - 1].type === 'unshuffle-done') {
+    setTimeout(() => { highlights = new Set(); drawGrid(); }, 300);
+  }
 });
 
 document.getElementById('btn-reset').addEventListener('click', () => {
@@ -976,21 +1211,28 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   initGrid();
 });
 
+document.getElementById('btn-skip').addEventListener('click', skipToNextPhase);
+
 document.getElementById('grid-size').addEventListener('change', () => {
   playing = false;
   clearTimeout(playTimer);
   initGrid();
 });
 
-document.querySelectorAll('.step').forEach(el => {
-  el.addEventListener('click', () => {
-    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-    el.classList.add('active');
+// Phase jump buttons
+document.querySelectorAll('.phase-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = parseInt(btn.dataset.phase);
+    jumpToPhase(target);
   });
 });
 
-// ─── Init ────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', drawGrid);
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
 initGrid();
 </script>
-</body>
-</html>
+
+</body></html>
