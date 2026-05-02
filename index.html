@@ -88,15 +88,6 @@
     margin-bottom: 12px;
   }
 
-  .hero-refs {
-    font-size: 11px;
-    color: var(--muted);
-    opacity: 0.7;
-  }
-
-  .hero-refs a { color: var(--accent2); text-decoration: none; }
-  .hero-refs a:hover { text-decoration: underline; }
-
   .content {
     position: relative;
     z-index: 1;
@@ -161,12 +152,6 @@
   .btn.primary:hover { background: #d4b86a; }
   .btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-  .btn.active-toggle {
-    background: rgba(108,156,220,0.2);
-    border-color: var(--accent2);
-    color: var(--accent2);
-  }
-
   select {
     font-family: var(--mono);
     font-size: 11px;
@@ -212,7 +197,6 @@
     font-style: italic;
     font-weight: 700;
     color: var(--muted);
-    transition: background 0.3s, color 0.3s, border-color 0.3s;
   }
 
   .phase-badge.active {
@@ -236,7 +220,6 @@
     letter-spacing: 0.05em;
     text-transform: uppercase;
     margin-bottom: 5px;
-    transition: color 0.3s;
   }
 
   .phase-desc-text {
@@ -258,11 +241,10 @@
     height: 6px;
     border-radius: 50%;
     background: var(--border2);
-    transition: background 0.3s;
   }
 
   .phase-dot.done    { background: var(--accent3); }
-  .phase-dot.current { background: var(--orange); }
+  .phase-dot.current { background: var(--accent); }
 
   /* -- Status bar -- */
   .step-indicator {
@@ -300,32 +282,6 @@
   }
 
   .legend-swatch { width: 12px; height: 12px; border-radius: 2px; }
-
-  /* -- Speed slider -- */
-  .speed-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  input[type=range] {
-    -webkit-appearance: none;
-    width: 72px;
-    height: 4px;
-    background: var(--border2);
-    border-radius: 2px;
-    outline: none;
-  }
-
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 13px; height: 13px;
-    border-radius: 50%;
-    background: var(--accent);
-    cursor: pointer;
-  }
 
   /* -- Phase jump buttons -- */
   .phase-jump-row {
@@ -376,25 +332,6 @@
     border-color: var(--accent3);
     color: var(--accent3);
   }
-
-  footer {
-    position: relative;
-    z-index: 1;
-    border-top: 1px solid var(--border);
-    padding: 28px 24px;
-    max-width: 900px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  footer p { font-size: 11px; color: var(--muted); margin: 0; }
-  footer a { color: var(--accent); text-decoration: none; }
-  footer a:hover { text-decoration: underline; }
-  footer em { font-style: italic; }
 </style>
 </head>
 <body>
@@ -416,18 +353,12 @@
     <div class="demo-header">
       <span class="demo-title">Προσομοίωση 3n-sort</span>
       <div class="controls">
-        <div class="speed-row">
-          <span>Ταχύτητα</span>
-          <input type="range" id="speed" min="30" max="950" value="500">
-        </div>
         <select id="grid-size">
           <option value="16" selected="">16 &times; 16 (q=1)</option>
           <option value="256">256 &times; 256 (q=2)</option>
         </select>
         <button class="btn" id="btn-reset">Reset</button>
-        <button class="btn" id="btn-skip">&#8652; Επόμενη Φάση</button>
-        <button class="btn" id="btn-step">Βήμα</button>
-        <button class="btn primary" id="btn-play">&#9654; Αναπαραγωγή</button>
+        <button class="btn primary" id="btn-step">Επόμενη Φάση</button>
       </div>
     </div>
 
@@ -435,6 +366,7 @@
     <div class="step-indicator">
       <span class="phase-jump-label">Μετάβαση σε φάση:</span>
       <div class="phase-jump-row">
+        <button class="phase-btn" data-phase="0">0</button>
         <button class="phase-btn" data-phase="1">1</button>
         <button class="phase-btn" data-phase="2">2</button>
         <button class="phase-btn" data-phase="3">3</button>
@@ -456,7 +388,7 @@
       <div class="phase-badge" id="phase-badge">&mdash;</div>
       <div class="phase-info">
         <div class="phase-title-text" id="phase-title-text">Έτοιμο</div>
-        <div class="phase-desc-text" id="phase-desc-text">Επιλέξτε μέγεθος πλέγματος και πατήστε Αναπαραγωγή.</div>
+        <div class="phase-desc-text" id="phase-desc-text">Επιλέξτε μέγεθος πλέγματος και πατήστε Επόμενη Φάση.</div>
       </div>
       <div class="phase-dots-col" id="phase-dots">
         <div class="phase-dot" id="pdot-1"></div>
@@ -478,19 +410,15 @@
     <!-- Legend -->
     <div class="legend">
       <div class="legend-item">
-        <div class="legend-swatch" style="background:#1a4a2a"></div>
-        <span>Ταξινομημένο</span>
+        <div class="legend-swatch" style="background:#0b0e14;border:1px solid rgba(255,255,255,0.18)"></div>
+        <span>0</span>
       </div>
       <div class="legend-item">
-        <div class="legend-swatch" style="background:#ff9a3c"></div>
-        <span>Υπό σύγκριση</span>
+        <div class="legend-swatch" style="background:#e8eaf0"></div>
+        <span>1</span>
       </div>
       <div class="legend-item">
-        <div class="legend-swatch" style="background:#1c2230"></div>
-        <span>Αταξινόμητο</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-swatch" style="background:rgba(108,156,220,0.4)"></div>
+        <div class="legend-swatch" style="background:rgba(108,156,220,0.55)"></div>
         <span>Όριο block</span>
       </div>
     </div>
@@ -519,7 +447,7 @@ const PHASES = [
   },
   { num: 4,
     title: 'Φάση 4 — Ταξινόμηση στηλών σε γραμμική διάταξη',
-    desc:  'Κάθε στήλη του πλέγματος ταξινομείται αύξουσα από άνω προς κάτω.'
+    desc:  'Κάθε στήλη του πλέγματος ταξινομείται αύξουσα από άνω προς κάτω — όλες οι στήλες παράλληλα.'
   },
   { num: 5,
     title: 'Φάση 5 — Ταξινόμηση ζευγών blocks 1+2, 3+4 … ανά slice',
@@ -531,7 +459,7 @@ const PHASES = [
   },
   { num: 7,
     title: 'Φάση 7 — Ταξινόμηση γραμμών κατά snake',
-    desc:  'Κάθε γραμμή ταξινομείται σύμφωνα με την κατεύθυνση του συνολικού N-κυτταρικού φιδιού: ζυγές γραμμές αύξουσα (→), μονές γραμμές φθίνουσα (←).'
+    desc:  'Κάθε γραμμή ταξινομείται σύμφωνα με την κατεύθυνση του συνολικού N-κυτταρικού φιδιού — όλες οι γραμμές παράλληλα: ζυγές γραμμές αύξουσα (→), μονές γραμμές φθίνουσα (←).'
   },
   { num: 8,
     title: 'Φάση 8 — Odd-even transposition στο συνολικό snake',
@@ -545,18 +473,12 @@ const PHASES = [
 const canvas = document.getElementById('grid-canvas');
 const ctx    = canvas.getContext('2d');
 
-let N            = 16;
-let grid         = [];
-let ops          = [];
-let opIdx        = 0;
-let playing      = false;
-let playTimer    = null;
-let parallelStep = 0;
-
-let highlights   = new Set();
-let sortedCells  = new Set();
-let blockStates  = {};
+let N               = 16;
+let grid            = [];   // flat Int array of length N*N, cell (r,c) -> grid[r*N+c]
+let ops             = [];   // one entry per phase: { type:'phase', phaseNum, gridSnapshot }
+let opIdx           = 0;
 let currentPhaseNum = 0;
+let suppressDraw    = false;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -578,25 +500,27 @@ function getSnakeIndices(r0, c0, r1, c1) {
   return idx;
 }
 
+// Sort each region ascending (in-place on g).  A region is a list of [r,c]
+// indices defining the 1-D ordering the values should be sorted along.
+function sortRegions(g, n, regions) {
+  for (const idx of regions) {
+    const sorted = idx.map(([r, c]) => g[r * n + c]).sort((a, b) => a - b);
+    idx.forEach(([r, c], i) => { g[r * n + c] = sorted[i]; });
+  }
+}
+
 // ---------------------------------------------------------------------------
-// Grid init — always binary 0/1
+// Grid init — binary 0/1, shuffled
 // ---------------------------------------------------------------------------
 function initGrid() {
   N = parseInt(document.getElementById('grid-size').value);
   const bs = getBlockSize(N);
   const nb = getNumBlocks(N);
 
-  highlights       = new Set();
-  sortedCells      = new Set();
-  blockStates      = {};
-  currentPhaseNum  = 0;
-  parallelStep     = 0;
+  currentPhaseNum = 0;
 
   const total = N * N;
-
-  // Always binary 0/1
   grid = Array.from({ length: total }, (_, i) => i < Math.floor(total / 2) ? 0 : 1);
-  // Shuffle
   for (let i = grid.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [grid[i], grid[j]] = [grid[j], grid[i]];
@@ -605,9 +529,7 @@ function initGrid() {
   ops   = buildOps(N, bs, nb);
   opIdx = 0;
 
-  document.getElementById('btn-play').disabled  = false;
-  document.getElementById('btn-step').disabled  = false;
-  document.getElementById('btn-play').textContent = '\u25B6 Αναπαραγωγή';
+  document.getElementById('btn-step').disabled = false;
 
   updateUI();
   updatePhaseButtons();
@@ -615,7 +537,7 @@ function initGrid() {
 }
 
 // ---------------------------------------------------------------------------
-// Build ops for all 8 phases
+// Build ops — one snapshot per phase end-state.
 // ---------------------------------------------------------------------------
 function buildOps(n, bs, nb) {
   const list = [];
@@ -623,41 +545,10 @@ function buildOps(n, bs, nb) {
   const sw   = Math.floor(n / k);
   const g    = grid.slice();
 
-  // -- Utility: parallel bubble sort over multiple index sequences --
-  function parallelBubble(regions, doGreen) {
-    if (!regions.length) return;
-    const len  = regions[0].length;
-    const vals = regions.map(idx => idx.map(([r, c]) => g[r * n + c]));
-
-    for (let i = 0; i < len - 1; i++) {
-      for (let j = 0; j < len - 1 - i; j++) {
-        const actions = [];
-        for (let ri = 0; ri < regions.length; ri++) {
-          const idx = regions[ri];
-          const v   = vals[ri];
-          const [ra, ca] = idx[j];
-          const [rb, cb] = idx[j + 1];
-          const isSwap = v[j] > v[j + 1];
-          if (isSwap) {
-            [v[j], v[j + 1]] = [v[j + 1], v[j]];
-            g[ra * n + ca] = v[j]; g[rb * n + cb] = v[j + 1];
-          }
-          actions.push({ ra, ca, rb, cb, isSwap });
-        }
-        list.push({ type: 'parallel-step', actions });
-      }
-      if (doGreen) {
-        list.push({ type: 'parallel-cell-sorted',
-          cells: regions.map(idx => idx[len - 1 - i]) });
-      }
-    }
-    if (doGreen) {
-      list.push({ type: 'parallel-cell-sorted',
-        cells: regions.map(idx => idx[0]) });
-    }
+  function push(phaseNum) {
+    list.push({ type: 'phase', phaseNum, gridSnapshot: g.slice() });
   }
 
-  // -- Block regions helper --
   function allBlockRegions() {
     const r = [];
     for (let br = 0; br < nb; br++)
@@ -666,289 +557,129 @@ function buildOps(n, bs, nb) {
     return r;
   }
 
-  // -- Block-level animation for N=256 --
-  function blockLevelSort(pattern) {
-    list.push({ type: 'blocks-animating', pattern });
-    list.push({ type: 'blocks-done', gridSnapshot: g.slice(), pattern });
-  }
-
-  // -- Sort g in-place for a list of index sequences --
-  function sortRegions(regions) {
-    for (const idx of regions) {
-      const sorted = idx.map(([r, c]) => g[r * n + c]).sort((a, b) => a - b);
-      idx.forEach(([r, c], i) => { g[r * n + c] = sorted[i]; });
-    }
-  }
-
-  // ===== PHASE 1 — Sort each block in snakelike order =====
-  list.push({ type: 'phase', phaseNum: 1 });
-
-  if (n === 16) {
-    parallelBubble(allBlockRegions(), true);
-  } else {
-    sortRegions(allBlockRegions());
-    blockLevelSort('all-blocks');
-  }
+  // ===== PHASE 1 — Sort each block in snake order =====
+  sortRegions(g, n, allBlockRegions());
+  push(1);
 
   // ===== PHASE 2 — N^(1/8)-way unshuffle of columns =====
-  list.push({ type: 'phase', phaseNum: 2 });
-  list.push({ type: 'clear-sorted' });
-
-  // Unshuffle: col c -> new position (c % k)*sw + floor(c/k)
-  const newG = g.slice();
-  for (let r = 0; r < n; r++)
-    for (let c = 0; c < n; c++) {
-      const nc = (c % k) * sw + Math.floor(c / k);
-      newG[r * n + nc] = g[r * n + c];
-    }
-  for (let i = 0; i < g.length; i++) g[i] = newG[i];
-  list.push({ type: 'unshuffle-done', gridSnapshot: g.slice() });
+  {
+    const newG = g.slice();
+    for (let r = 0; r < n; r++)
+      for (let c = 0; c < n; c++) {
+        const nc = (c % k) * sw + Math.floor(c / k);
+        newG[r * n + nc] = g[r * n + c];
+      }
+    for (let i = 0; i < g.length; i++) g[i] = newG[i];
+  }
+  push(2);
 
   // ===== PHASE 3 — Sort each block again =====
-  list.push({ type: 'phase', phaseNum: 3 });
-  list.push({ type: 'clear-sorted' });
+  sortRegions(g, n, allBlockRegions());
+  push(3);
 
-  if (n === 16) {
-    parallelBubble(allBlockRegions(), true);
-  } else {
-    sortRegions(allBlockRegions());
-    blockLevelSort('all-blocks');
-  }
-
-  // ===== PHASE 4 — Sort each column in linear order =====
-  list.push({ type: 'phase', phaseNum: 4 });
-  list.push({ type: 'clear-sorted' });
-
-  if (n === 16) {
+  // ===== PHASE 4 — Sort each column ascending (all columns in parallel) =====
+  {
     const colRegions = [];
     for (let c = 0; c < n; c++) {
       const idx = [];
       for (let r = 0; r < n; r++) idx.push([r, c]);
       colRegions.push(idx);
     }
-    parallelBubble(colRegions, true);
-  } else {
-    for (let c = 0; c < n; c++) {
-      const col = Array.from({ length: n }, (_, r) => g[r * n + c]).sort((a, b) => a - b);
-      col.forEach((v, r) => { g[r * n + c] = v; });
+    sortRegions(g, n, colRegions);
+  }
+  push(4);
+
+  // ===== PHASE 5 — Sort block pairs 1+2, 3+4, ... per vertical slice =====
+  {
+    const regions = [];
+    for (let vs = 0; vs < k; vs++) {
+      const c0 = vs * sw, c1 = c0 + sw - 1;
+      for (let p = 0; p + 1 < nb; p += 2) {
+        const r0 = p * bs, r1 = Math.min((p + 2) * bs - 1, n - 1);
+        regions.push(getSnakeIndices(r0, c0, r1, c1));
+      }
     }
-    blockLevelSort('columns');
+    if (regions.length) sortRegions(g, n, regions);
   }
+  push(5);
 
-  // ===== PHASE 5 — Collectively sort blocks 1+2, 3+4 of each vertical slice =====
-  list.push({ type: 'phase', phaseNum: 5 });
-
-  const ph5Regions = [];
-  for (let vs = 0; vs < k; vs++) {
-    const c0 = vs * sw, c1 = c0 + sw - 1;
-    for (let p = 0; p + 1 < nb; p += 2) {
-      const r0 = p * bs, r1 = Math.min((p + 2) * bs - 1, n - 1);
-      ph5Regions.push(getSnakeIndices(r0, c0, r1, c1));
+  // ===== PHASE 6 — Sort block pairs 2+3, 4+5, ... per vertical slice =====
+  {
+    const regions = [];
+    for (let vs = 0; vs < k; vs++) {
+      const c0 = vs * sw, c1 = c0 + sw - 1;
+      for (let p = 1; p + 1 < nb; p += 2) {
+        const r0 = p * bs, r1 = Math.min((p + 2) * bs - 1, n - 1);
+        regions.push(getSnakeIndices(r0, c0, r1, c1));
+      }
     }
+    if (regions.length) sortRegions(g, n, regions);
+    // N=16 has nb=2, so no pair 2+3 exists — g is unchanged, but we still push
+    // the phase marker so UI stepping + phase jumps remain consistent.
   }
+  push(6);
 
-  if (n === 16) {
-    sortRegions(ph5Regions);
-    list.push({ type: 'unshuffle-done', gridSnapshot: g.slice() });
-  } else {
-    sortRegions(ph5Regions);
-    blockLevelSort('odd-pairs');
-  }
-
-  // ===== PHASE 6 — Collectively sort blocks 2+3, 4+5 of each vertical slice =====
-  list.push({ type: 'phase', phaseNum: 6 });
-
-  const ph6Regions = [];
-  for (let vs = 0; vs < k; vs++) {
-    const c0 = vs * sw, c1 = c0 + sw - 1;
-    for (let p = 1; p + 1 < nb; p += 2) {
-      const r0 = p * bs, r1 = Math.min((p + 2) * bs - 1, n - 1);
-      ph6Regions.push(getSnakeIndices(r0, c0, r1, c1));
-    }
-  }
-
-  if (ph6Regions.length === 0) {
-    list.push({ type: 'phase-noop' });
-  } else if (n === 16) {
-    sortRegions(ph6Regions);
-    list.push({ type: 'unshuffle-done', gridSnapshot: g.slice() });
-  } else {
-    sortRegions(ph6Regions);
-    blockLevelSort('even-pairs');
-  }
-
-  // ===== PHASE 7 — Sort each row in linear order (snake direction) =====
-  list.push({ type: 'phase', phaseNum: 7 });
-
-  if (n === 16) {
+  // ===== PHASE 7 — Sort each row in snake direction =====
+  {
     const rowRegions = [];
     for (let r = 0; r < n; r++) {
-      const ascending = (r % 2 === 0);
       const idx = [];
-      if (ascending) {
+      if (r % 2 === 0) {
         for (let c = 0; c < n; c++) idx.push([r, c]);
       } else {
         for (let c = n - 1; c >= 0; c--) idx.push([r, c]);
       }
       rowRegions.push(idx);
     }
-    parallelBubble(rowRegions, true);
-  } else {
-    for (let r = 0; r < n; r++) {
-      const row = Array.from({ length: n }, (_, c) => g[r * n + c]).sort((a, b) => a - b);
-      if (r % 2 === 0) {
-        row.forEach((v, c) => { g[r * n + c] = v; });
-      } else {
-        row.reverse().forEach((v, c) => { g[r * n + c] = v; });
-      }
-    }
-    blockLevelSort('rows');
+    sortRegions(g, n, rowRegions);
   }
+  push(7);
 
-  // ===== PHASE 8 — 2*N^{3/8} steps of odd-even transposition on overall snake =====
-  list.push({ type: 'phase', phaseNum: 8 });
-
-  if (n === 16) {
+  // ===== PHASE 8 — 2·n^{3/4} passes of odd-even transposition on the full snake =====
+  // Algorithm runs in full (proves 2·bs passes are enough); only the end state is shown.
+  {
     const snakeIdx   = getSnakeIndices(0, 0, n - 1, n - 1);
     const totalSteps = 2 * bs;
     const vals       = snakeIdx.map(([r, c]) => g[r * n + c]);
-
     for (let t = 0; t < totalSteps; t++) {
-      const start   = t % 2;
-      const actions = [];
+      const start = t % 2;
       for (let j = start; j + 1 < snakeIdx.length; j += 2) {
-        const [ra, ca] = snakeIdx[j];
-        const [rb, cb] = snakeIdx[j + 1];
-        const isSwap   = vals[j] > vals[j + 1];
-        if (isSwap) {
+        if (vals[j] > vals[j + 1]) {
           [vals[j], vals[j + 1]] = [vals[j + 1], vals[j]];
-          g[ra * n + ca] = vals[j]; g[rb * n + cb] = vals[j + 1];
+          const [ra, ca] = snakeIdx[j];
+          const [rb, cb] = snakeIdx[j + 1];
+          g[ra * n + ca] = vals[j];
+          g[rb * n + cb] = vals[j + 1];
         }
-        actions.push({ ra, ca, rb, cb, isSwap });
       }
-      list.push({ type: 'parallel-step', actions });
     }
-  } else {
-    const snakeIdx = getSnakeIndices(0, 0, n - 1, n - 1);
-    const sorted   = snakeIdx.map(([r, c]) => g[r * n + c]).sort((a, b) => a - b);
-    snakeIdx.forEach(([r, c], i) => { g[r * n + c] = sorted[i]; });
-    blockLevelSort('snake');
   }
+  push(8);
 
-  // -- Mark all cells sorted & done --
-  list.push({ type: 'all-sorted', gridSnapshot: g.slice() });
   list.push({ type: 'done' });
   return list;
 }
 
 // ---------------------------------------------------------------------------
-// Step forward
+// Step forward — advance exactly one phase
 // ---------------------------------------------------------------------------
 function stepForward() {
   if (opIdx >= ops.length) return;
   const op = ops[opIdx++];
 
   switch (op.type) {
-
     case 'phase':
       currentPhaseNum = op.phaseNum;
-      highlights      = new Set();
-      parallelStep    = 0;
+      if (op.gridSnapshot && grid) {
+        for (let i = 0; i < grid.length; i++) grid[i] = op.gridSnapshot[i];
+      }
       updateUI();
       updatePhaseButtons();
-      drawGrid();
-      break;
-
-    case 'parallel-step': {
-      highlights = new Set();
-      for (const { ra, ca, rb, cb, isSwap } of op.actions) {
-        highlights.add(`${ra},${ca}`);
-        highlights.add(`${rb},${cb}`);
-        if (isSwap) {
-          if (grid) [grid[ra * N + ca], grid[rb * N + cb]] = [grid[rb * N + cb], grid[ra * N + ca]];
-        }
-      }
-      parallelStep++;
-      updateUI();
-      drawGrid();
-      break;
-    }
-
-    case 'parallel-cell-sorted':
-      for (const [r, c] of op.cells) sortedCells.add(`${r},${c}`);
-      highlights = new Set();
-      drawGrid();
-      break;
-
-    case 'clear-sorted':
-      sortedCells = new Set();
-      drawGrid();
-      break;
-
-    case 'unshuffle-done':
-      if (op.gridSnapshot && grid) {
-        for (let i = 0; i < grid.length; i++) grid[i] = op.gridSnapshot[i];
-      }
-      highlights = new Set();
-      if (grid) {
-        for (let r = 0; r < N; r++)
-          for (let c = 0; c < N; c++)
-            highlights.add(`${r},${c}`);
-      }
-      parallelStep = 0;
-      updateUI();
-      drawGrid();
-      break;
-
-    case 'phase-noop':
-      parallelStep = 0;
-      updateUI();
-      drawGrid();
-      break;
-
-    case 'blocks-animating': {
-      const nb = getNumBlocks(N);
-      for (let br = 0; br < nb; br++)
-        for (let bc = 0; bc < nb; bc++)
-          blockStates[`${br},${bc}`] = 'sorting';
-      highlights = new Set();
-      drawGrid();
-      break;
-    }
-
-    case 'blocks-done': {
-      if (op.gridSnapshot && grid) {
-        for (let i = 0; i < grid.length; i++) grid[i] = op.gridSnapshot[i];
-      }
-      const nb = getNumBlocks(N);
-      for (let br = 0; br < nb; br++)
-        for (let bc = 0; bc < nb; bc++)
-          blockStates[`${br},${bc}`] = 'sorted';
-      highlights = new Set();
-      parallelStep = 0;
-      updateUI();
-      drawGrid();
-      break;
-    }
-
-    case 'all-sorted':
-      if (op.gridSnapshot && grid) {
-        for (let i = 0; i < grid.length; i++) grid[i] = op.gridSnapshot[i];
-      }
-      highlights = new Set();
-      for (let r = 0; r < N; r++)
-        for (let c = 0; c < N; c++)
-          sortedCells.add(`${r},${c}`);
       drawGrid();
       break;
 
     case 'done':
-      highlights = new Set();
-      playing    = false;
-      clearTimeout(playTimer);
-      document.getElementById('btn-play').textContent = '\u25B6 Αναπαραγωγή';
-      document.getElementById('btn-play').disabled    = true;
-      document.getElementById('btn-step').disabled    = true;
+      document.getElementById('btn-step').disabled = true;
       updateUI();
       updatePhaseButtons();
       drawGrid();
@@ -957,54 +688,14 @@ function stepForward() {
 }
 
 // ---------------------------------------------------------------------------
-// Skip to next phase
-// ---------------------------------------------------------------------------
-let suppressDraw = false;
-
-function skipToNextPhase() {
-  if (opIdx >= ops.length) return;
-  playing = false;
-  clearTimeout(playTimer);
-  document.getElementById('btn-play').textContent = '\u25B6 Αναπαραγωγή';
-
-  suppressDraw = true;
-
-  // If sitting on a 'phase' marker, consume it first
-  if (ops[opIdx] && ops[opIdx].type === 'phase') stepForward();
-
-  // Fast-forward until the next 'phase' or 'done'
-  while (opIdx < ops.length) {
-    const next = ops[opIdx];
-    if (next.type === 'phase' || next.type === 'done') break;
-    stepForward();
-  }
-
-  suppressDraw = false;
-  highlights   = new Set();
-  updateUI();
-  updatePhaseButtons();
-  drawGrid();
-}
-
-// ---------------------------------------------------------------------------
-// Jump to a specific phase (1-8)
+// Jump to a specific phase (1-8) — re-init with fresh shuffle, fast-forward
 // ---------------------------------------------------------------------------
 function jumpToPhase(targetPhase) {
-  // Stop any playback
-  playing = false;
-  clearTimeout(playTimer);
-  document.getElementById('btn-play').textContent = '\u25B6 Αναπαραγωγή';
-
-  // Re-initialize the grid from scratch (fresh random shuffle + rebuild ops)
   N = parseInt(document.getElementById('grid-size').value);
   const bs = getBlockSize(N);
   const nb = getNumBlocks(N);
 
-  highlights       = new Set();
-  sortedCells      = new Set();
-  blockStates      = {};
-  currentPhaseNum  = 0;
-  parallelStep     = 0;
+  currentPhaseNum = 0;
 
   const total = N * N;
   grid = Array.from({ length: total }, (_, i) => i < Math.floor(total / 2) ? 0 : 1);
@@ -1016,93 +707,64 @@ function jumpToPhase(targetPhase) {
   ops   = buildOps(N, bs, nb);
   opIdx = 0;
 
-  document.getElementById('btn-play').disabled  = false;
-  document.getElementById('btn-step').disabled  = false;
+  document.getElementById('btn-step').disabled = false;
 
-  // Now fast-forward to the target phase
   suppressDraw = true;
-
   while (opIdx < ops.length) {
     const op = ops[opIdx];
     if (op.type === 'phase' && op.phaseNum === targetPhase) {
-      // Consume the phase marker so we land AT the start of this phase
       stepForward();
       break;
     }
     stepForward();
   }
-
   suppressDraw = false;
-  highlights   = new Set();
+
   updateUI();
   updatePhaseButtons();
   drawGrid();
 }
 
 // ---------------------------------------------------------------------------
-// Draw
+// Draw — unified binary (black/white) view, no highlights
 // ---------------------------------------------------------------------------
 function drawGrid() {
   if (suppressDraw) return;
-  const size = Math.min(560, window.innerWidth - 48);
-  canvas.width  = size;
-  canvas.height = size;
 
-  const bs   = getBlockSize(N);
-  const nb   = getNumBlocks(N);
-  const cell = size / N;
-  const bpx  = bs * cell;
+  const bound = Math.min(560, window.innerWidth - 48);
+  const cell  = Math.max(1, Math.floor(bound / N));
+  const size  = cell * N;
+  const dpr   = window.devicePixelRatio || 1;
+
+  if (canvas.width !== size * dpr || canvas.height !== size * dpr) {
+    canvas.width  = size * dpr;
+    canvas.height = size * dpr;
+  }
+  canvas.style.width  = size + 'px';
+  canvas.style.height = size + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+
+  const bs  = getBlockSize(N);
+  const nb  = getNumBlocks(N);
+  const bpx = bs * cell;
 
   ctx.clearRect(0, 0, size, size);
 
-  if (N === 16) {
-    // -- Individual cells --
-    for (let r = 0; r < N; r++) {
-      for (let c = 0; c < N; c++) {
-        const x   = c * cell, y = r * cell;
-        const key = `${r},${c}`;
-        const act = highlights.has(key);
-        const srt = sortedCells.has(key);
-        const val = grid[r * N + c];
-
-        ctx.fillStyle = act ? '#3d2000' : srt ? '#1a4a2a' : '#1c2230';
-        ctx.fillRect(x, y, cell, cell);
-
-        const fs = Math.max(7, Math.min(12, cell * 0.36));
-        ctx.font         = `${fs}px 'DM Mono', monospace`;
-        ctx.textAlign    = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle    = act ? '#ff9a3c' : srt ? '#7ecba1' : '#3a4a60';
-        ctx.fillText(val, x + cell / 2, y + cell / 2);
-
-        ctx.strokeStyle = '#252e40';
-        ctx.lineWidth   = 0.5;
-        ctx.strokeRect(x + 0.25, y + 0.25, cell - 0.5, cell - 0.5);
-      }
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      ctx.fillStyle = grid[r * N + c] === 1 ? '#e8eaf0' : '#0b0e14';
+      ctx.fillRect(c * cell, r * cell, cell, cell);
     }
-    // Block borders
-    ctx.strokeStyle = 'rgba(108,156,220,0.55)';
-    ctx.lineWidth   = 1.8;
-    for (let br = 0; br < nb; br++)
-      for (let bc = 0; bc < nb; bc++)
-        ctx.strokeRect(bc * bpx, br * bpx, bpx, bpx);
-
-  } else if (N === 256) {
-    // -- Black/white binary view (0 = black, 1 = white) --
-    const pw = Math.max(1, cell);
-    for (let r = 0; r < N; r++) {
-      for (let c = 0; c < N; c++) {
-        ctx.fillStyle = grid[r * N + c] === 1 ? '#e8eaf0' : '#0b0e14';
-        ctx.fillRect(c * cell, r * cell, pw, pw);
-      }
-    }
-    // Block borders
-    ctx.strokeStyle = 'rgba(108,156,220,0.35)';
-    ctx.lineWidth   = 0.5;
-    for (let br = 0; br < nb; br++)
-      for (let bc = 0; bc < nb; bc++)
-        ctx.strokeRect(bc * bpx + 0.25, br * bpx + 0.25, bpx - 0.5, bpx - 0.5);
   }
+
+  const lw   = N === 16 ? 2 : 1;
+  const half = lw / 2;
+  ctx.strokeStyle = 'rgba(108,156,220,0.55)';
+  ctx.lineWidth   = lw;
+  for (let br = 0; br < nb; br++)
+    for (let bc = 0; bc < nb; bc++)
+      ctx.strokeRect(bc * bpx + half, br * bpx + half, bpx - lw, bpx - lw);
 }
 
 // ---------------------------------------------------------------------------
@@ -1117,17 +779,17 @@ function updateUI() {
     badge.className   = 'phase-badge';
     document.getElementById('phase-title-text').textContent = 'Έτοιμο';
     document.getElementById('phase-desc-text').textContent  =
-      'Επιλέξτε μέγεθος πλέγματος και πατήστε Αναπαραγωγή.';
+      'Επιλέξτε μέγεθος πλέγματος και πατήστε Επόμενη Φάση.';
     document.getElementById('phase-label').textContent      = '\u2014';
   } else {
     badge.textContent = p.num;
-    badge.className   = opIdx >= ops.length ? 'phase-badge done' : 'phase-badge active';
+    const allDone = opIdx >= ops.length;
+    badge.className   = allDone ? 'phase-badge done' : 'phase-badge active';
     document.getElementById('phase-title-text').textContent = p.title;
     document.getElementById('phase-desc-text').textContent  = p.desc;
     document.getElementById('phase-label').textContent      = `${p.num} / 8`;
   }
 
-  // Phase dots
   for (let i = 1; i <= 8; i++) {
     const dot = document.getElementById(`pdot-${i}`);
     dot.className = 'phase-dot';
@@ -1136,7 +798,6 @@ function updateUI() {
   }
 }
 
-// Update phase jump button styles
 function updatePhaseButtons() {
   document.querySelectorAll('.phase-btn').forEach(btn => {
     const ph = parseInt(btn.dataset.phase);
@@ -1146,84 +807,24 @@ function updatePhaseButtons() {
   });
 }
 
-function getSpeed() { return 980 - parseInt(document.getElementById('speed').value); }
-
-// ---------------------------------------------------------------------------
-// Playback
-// ---------------------------------------------------------------------------
-function togglePlay() {
-  if (opIdx >= ops.length) return;
-  playing = !playing;
-  document.getElementById('btn-play').textContent = playing ? '\u23F8 Παύση' : '\u25B6 Αναπαραγωγή';
-  if (playing) runPlay();
-}
-
-function runPlay() {
-  if (!playing || opIdx >= ops.length) {
-    playing = false;
-    document.getElementById('btn-play').textContent = '\u25B6 Αναπαραγωγή';
-    return;
-  }
-  stepForward();
-  const last = ops[opIdx - 1];
-  if (!last) { runPlay(); return; }
-
-  // Pause automatically when entering a new phase
-  if (last.type === 'phase') {
-    playing = false;
-    document.getElementById('btn-play').textContent = '\u25B6 Αναπαραγωγή';
-    return;
-  }
-
-  if (last.type === 'clear-sorted' || last.type === 'phase-noop') {
-    runPlay();
-  } else if (last.type === 'unshuffle-done') {
-    playTimer = setTimeout(() => {
-      highlights = new Set();
-      drawGrid();
-      runPlay();
-    }, Math.max(80, getSpeed()));
-  } else {
-    playTimer = setTimeout(runPlay, getSpeed());
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Event listeners
 // ---------------------------------------------------------------------------
-document.getElementById('btn-play').addEventListener('click', togglePlay);
+document.getElementById('btn-step').addEventListener('click', stepForward);
 
-document.getElementById('btn-step').addEventListener('click', () => {
-  if (playing) {
-    playing = false;
-    clearTimeout(playTimer);
-    document.getElementById('btn-play').textContent = '\u25B6 Αναπαραγωγή';
-  }
-  stepForward();
-  if (ops[opIdx - 1] && ops[opIdx - 1].type === 'unshuffle-done') {
-    setTimeout(() => { highlights = new Set(); drawGrid(); }, 300);
-  }
-});
+document.getElementById('btn-reset').addEventListener('click', initGrid);
 
-document.getElementById('btn-reset').addEventListener('click', () => {
-  playing = false;
-  clearTimeout(playTimer);
-  initGrid();
-});
+document.getElementById('grid-size').addEventListener('change', initGrid);
 
-document.getElementById('btn-skip').addEventListener('click', skipToNextPhase);
-
-document.getElementById('grid-size').addEventListener('change', () => {
-  playing = false;
-  clearTimeout(playTimer);
-  initGrid();
-});
-
-// Phase jump buttons
 document.querySelectorAll('.phase-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const target = parseInt(btn.dataset.phase);
-    jumpToPhase(target);
+    if (target === 0) {
+      // "0" = unsorted initial state (fresh shuffle, no phases applied)
+      initGrid();
+    } else {
+      jumpToPhase(target);
+    }
   });
 });
 
