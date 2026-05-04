@@ -1,8 +1,19 @@
 <!DOCTYPE html>
 <html lang="el"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
+<!-- Register COI Service Worker as early as possible so SharedArrayBuffer is
+     available. On the very first load the SW registers and the page reloads
+     automatically; every subsequent load is cross-origin-isolated. -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./coi-serviceworker.js').then(() => {
+      if (!crossOriginIsolated) location.reload();
+    });
+  }
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3n-sort — Διαδραστική Οπτικοποίηση</title>
+<title>3n-sort — Παράλληλη Οπτικοποίηση (Web Workers)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,700;1,300;1,700&display=swap" rel="stylesheet">
 <style>
@@ -120,6 +131,15 @@
     color: var(--muted);
   }
 
+  .worker-badge {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--accent3);
+    border: 1px solid rgba(126,203,161,0.3);
+    border-radius: 4px;
+    padding: 2px 8px;
+  }
+
   .controls {
     display: flex;
     gap: 8px;
@@ -181,7 +201,6 @@
 
   #grid-canvas { display: block; margin: 0 auto; }
 
-  /* -- Phase info panel -- */
   .phase-panel {
     display: flex;
     align-items: flex-start;
@@ -220,6 +239,18 @@
     color: var(--accent3);
   }
 
+  .phase-badge.computing {
+    background: rgba(165,126,222,0.12);
+    border-color: var(--purple);
+    color: var(--purple);
+    animation: pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+
   .phase-info { flex: 1; }
 
   .phase-title-text {
@@ -255,7 +286,6 @@
   .phase-dot.done    { background: var(--accent3); }
   .phase-dot.current { background: var(--accent); }
 
-  /* -- Status bar -- */
   .step-indicator {
     padding: 10px 20px;
     border-bottom: 1px solid var(--border);
@@ -274,7 +304,6 @@
 
   .step-badge strong { color: var(--accent); font-weight: 500; }
 
-  /* -- Legend -- */
   .legend {
     display: flex;
     gap: 16px;
@@ -292,7 +321,6 @@
 
   .legend-swatch { width: 12px; height: 12px; border-radius: 2px; }
 
-  /* -- Phase jump buttons -- */
   .phase-jump-row {
     display: flex;
     gap: 4px;
@@ -351,11 +379,11 @@
 <body>
 
 <header class="hero">
-  <p class="hero-eyebrow">Διαδραστική Οπτικοποίηση Αλγορίθμου</p>
+  <p class="hero-eyebrow">Παράλληλη Οπτικοποίηση — Web Workers</p>
   <h1><em>3n</em>-sort</h1>
   <p class="hero-sub">
-    Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n&times;n επεξεργαστών με τοπική επικοινωνία.
-    Ταξινομεί N = n&sup2; στοιχεία σε 3n + O(n<sup>3/4</sup>) βήματα χρησιμοποιώντας 8 φάσεις.
+    Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n&times;n επεξεργαστών.
+    Κάθε ζεύγος compare-and-swap εκτελείται σε ξεχωριστό thread (Web Worker + SharedArrayBuffer).
   </p>
 </header>
 
@@ -363,9 +391,11 @@
 
   <div class="demo-card">
 
-    <!-- Controls -->
     <div class="demo-header">
-      <span class="demo-title">Προσομοίωση 3n-sort</span>
+      <div style="display:flex;gap:12px;align-items:center">
+        <span class="demo-title">Προσομοίωση 3n-sort</span>
+        <span class="worker-badge" id="worker-badge">⋯ workers</span>
+      </div>
       <div class="controls">
         <span class="n-label">n =</span>
         <input type="number" id="grid-size" min="16" max="256" value="16">
@@ -374,7 +404,6 @@
       </div>
     </div>
 
-    <!-- Phase jump buttons -->
     <div class="step-indicator">
       <span class="phase-jump-label">Μετάβαση σε φάση:</span>
       <div class="phase-jump-row">
@@ -392,17 +421,15 @@
       </div>
     </div>
 
-    <!-- Canvas -->
     <div class="grid-wrap">
       <canvas id="grid-canvas" width="560" height="560"></canvas>
     </div>
 
-    <!-- Phase info panel -->
     <div class="phase-panel">
       <div class="phase-badge" id="phase-badge">&mdash;</div>
       <div class="phase-info">
-        <div class="phase-title-text" id="phase-title-text">Έτοιμο</div>
-        <div class="phase-desc-text" id="phase-desc-text">Επιλέξτε μέγεθος πλέγματος και πατήστε Επόμενη Φάση.</div>
+        <div class="phase-title-text" id="phase-title-text">Αρχικοποίηση workers…</div>
+        <div class="phase-desc-text"  id="phase-desc-text">Παρακαλώ περιμένετε.</div>
       </div>
       <div class="phase-dots-col" id="phase-dots">
         <div class="phase-dot" id="pdot-1"></div>
@@ -416,12 +443,10 @@
       </div>
     </div>
 
-    <!-- Status bar -->
     <div class="step-indicator">
       <span class="step-badge">Φάση: <strong id="phase-label">&mdash;</strong></span>
     </div>
 
-    <!-- Legend -->
     <div class="legend">
       <div class="legend-item">
         <div class="legend-swatch" style="background:#0b0e14;border:1px solid rgba(255,255,255,0.18)"></div>
@@ -444,59 +469,119 @@
 
 <script>
 // ---------------------------------------------------------------------------
-// Valid grid sizes: n must be a perfect 4th power (k^4) for exact tiling.
-// Within the app range [16,256]: 16=2^4, 81=3^4, 256=4^4.
+// Constants
 // ---------------------------------------------------------------------------
 const VALID_SIZES = [16, 81, 256];
 
-// ---------------------------------------------------------------------------
-// Phase metadata — notation uses N = side length (matches code variable).
-// N^{1/4} = number of blocks/slices per dimension
-// N^{3/4} = block side length
-// PAD and UNPAD are synthetic phases used only when logicalN is not a valid size.
-// ---------------------------------------------------------------------------
 const PHASES = [
   { num: 'PAD',
     title: 'Padding — Επέκταση σε έγκυρο μέγεθος',
-    desc:  'Το πλέγμα επεκτείνεται στο επόμενο έγκυρο μέγεθος (k⁴). Οι επιπλέον θέσεις του φιδιού γεμίζουν με 1 (max τιμή), ώστε μετά την ταξινόμηση να βρίσκονται στο τέλος.'
+    desc:  'Το πλέγμα επεκτείνεται στο επόμενο έγκυρο μέγεθος (k⁴). Οι επιπλέον θέσεις γεμίζουν με 1.'
   },
   { num: 1,
     title: 'Φάση 1 — Ταξινόμηση blocks σε snakelike διάταξη',
-    desc:  'Το πλέγμα χωρίζεται σε N^{1/4} × N^{1/4} blocks μεγέθους N^{3/4}×N^{3/4}. Κάθε block ταξινομείται παράλληλα σε snakelike διάταξη.'
+    desc:  'Κάθε block ταξινομείται παράλληλα — κάθε ζεύγος compare-and-swap σε ξεχωριστό Web Worker.'
   },
   { num: 2,
     title: 'Φάση 2 — N^{1/4}-way unshuffle στηλών',
-    desc:  'Οι στήλες κάθε block ανακατανέμονται ομοιόμορφα μεταξύ των N^{1/4} κάθετων φετών (vertical slices). Κάθε slice λαμβάνει ίσο μέρος από τις στήλες κάθε block.'
+    desc:  'Permutation μόνο (χωρίς compare-swap): οι στήλες κάθε block ανακατανέμονται round-robin στα N^{1/4} blocks της ίδιας οριζόντιας λωρίδας.'
   },
   { num: 3,
     title: 'Φάση 3 — Εκ νέου ταξινόμηση blocks',
-    desc:  'Μετά την αναδιάταξη των στηλών, κάθε block ταξινομείται ξανά παράλληλα σε snakelike διάταξη.'
+    desc:  'Κάθε block ταξινομείται ξανά παράλληλα σε snakelike διάταξη.'
   },
   { num: 4,
-    title: 'Φάση 4 — Ταξινόμηση στηλών σε γραμμική διάταξη',
-    desc:  'Κάθε στήλη του πλέγματος ταξινομείται αύξουσα από άνω προς κάτω — όλες οι N στήλες παράλληλα με odd-even transposition sort.'
+    title: 'Φάση 4 — Ταξινόμηση στηλών',
+    desc:  'Όλες οι N στήλες ταξινομούνται παράλληλα — κάθε ζεύγος compare-and-swap ανατίθεται σε worker.'
   },
   { num: 5,
     title: 'Φάση 5 — Ταξινόμηση ζευγών blocks 1+2, 3+4 … ανά slice',
-    desc:  'Σε κάθε κάθετη φέτα (vertical slice), τα blocks 1+2, 3+4 κ.λπ. ταξινομούνται συλλογικά σε snakelike διάταξη.'
+    desc:  'Τα blocks 1+2, 3+4 κ.λπ. ταξινομούνται συλλογικά — κάθε ζεύγος σε ξεχωριστό worker.'
   },
   { num: 6,
     title: 'Φάση 6 — Ταξινόμηση ζευγών blocks 2+3, 4+5 … ανά slice',
-    desc:  'Σε κάθε κάθετη φέτα (vertical slice), τα blocks 2+3, 4+5 κ.λπ. ταξινομούνται συλλογικά σε snakelike διάταξη.'
+    desc:  'Τα blocks 2+3, 4+5 κ.λπ. ταξινομούνται συλλογικά — κάθε ζεύγος σε ξεχωριστό worker.'
   },
   { num: 7,
     title: 'Φάση 7 — Ταξινόμηση γραμμών κατά snake',
-    desc:  'Κάθε γραμμή ταξινομείται σύμφωνα με την κατεύθυνση του συνολικού N²-κυτταρικού φιδιού — όλες οι N γραμμές παράλληλα με odd-even transposition sort: ζυγές γραμμές αύξουσα (→), μονές γραμμές φθίνουσα (←).'
+    desc:  'Όλες οι N γραμμές ταξινομούνται παράλληλα — ζυγές αύξουσα (→), μονές φθίνουσα (←).'
   },
   { num: 8,
     title: 'Φάση 8 — Odd-even transposition στο συνολικό snake',
-    desc:  '2·N^{3/4} βήματα odd-even transposition sort πάνω στο συνολικό N²-κυτταρικό φίδι (snakelike). Το πλέγμα ταξινομείται πλήρως.'
+    desc:  'Odd-even transposition πάνω στο N²-κυτταρικό φίδι — κάθε ζεύγος σε ξεχωριστό worker.'
   },
   { num: 'UNPAD',
     title: 'Unpadding — Εξαγωγή αρχικού πλέγματος',
-    desc:  'Τα πρώτα logicalN² στοιχεία του ταξινομημένου φιδιού αντιστοιχούν στα πραγματικά δεδομένα. Εξάγονται και επαναδιατάσσονται σε logicalN×logicalN πλέγμα.'
+    desc:  'Τα πρώτα logicalN² στοιχεία εξάγονται και επαναδιατάσσονται σε logicalN×logicalN πλέγμα.'
   }
 ];
+
+// ---------------------------------------------------------------------------
+// Worker pool — one SharedArrayBuffer, N_WORKERS threads
+// ---------------------------------------------------------------------------
+const MAX_N      = 256;
+const N_WORKERS  = Math.min(navigator.hardwareConcurrency || 4, 16);
+const sab        = new SharedArrayBuffer(MAX_N * MAX_N);  // shared grid memory
+const sharedGrid = new Uint8Array(sab);
+
+let   workerPool = [];
+let   msgSeq     = 0;
+const pending    = new Map(); // id → resolve(swapCount)
+
+async function initWorkerPool() {
+  const readyPromises = [];
+  for (let i = 0; i < N_WORKERS; i++) {
+    const w = new Worker('./sort-worker.js');
+
+    // Permanent handler for 'done' responses
+    w.addEventListener('message', e => {
+      if (e.data.type === 'done') {
+        const cb = pending.get(e.data.id);
+        if (cb) { cb(e.data.swaps); pending.delete(e.data.id); }
+      }
+    });
+
+    workerPool.push(w);
+
+    // One-shot handler to await 'ready' after init
+    readyPromises.push(new Promise(resolve => {
+      w.addEventListener('message', function onReady(e) {
+        if (e.data.type === 'ready') {
+          w.removeEventListener('message', onReady);
+          resolve();
+        }
+      });
+      w.postMessage({ type: 'init', buffer: sab });
+    }));
+  }
+  await Promise.all(readyPromises);
+  document.getElementById('worker-badge').textContent = `${N_WORKERS} workers`;
+}
+
+// Send a flat Int32Array of pair indices to the pool — all workers fire in parallel.
+// Returns total swap count across all workers.
+async function dispatchPairs(flat) {
+  const nPairs = flat.length >> 1;
+  if (!nPairs) return 0;
+
+  const nW     = Math.min(workerPool.length, nPairs);
+  const pPerW  = Math.ceil(nPairs / nW);
+  const proms  = [];
+
+  for (let w = 0; w < nW; w++) {
+    const s = w * pPerW * 2;
+    const e = Math.min(s + pPerW * 2, flat.length);
+    if (s >= flat.length) break;
+
+    const chunk = flat.slice(s, e); // own buffer — safe to transfer
+    const id    = msgSeq++;
+    proms.push(new Promise(res => { pending.set(id, res); }));
+    workerPool[w].postMessage({ type: 'swap_pairs', pairsBuf: chunk.buffer, id }, [chunk.buffer]);
+  }
+
+  const counts = await Promise.all(proms);
+  return counts.reduce((a, b) => a + b, 0);
+}
 
 // ---------------------------------------------------------------------------
 // State
@@ -504,36 +589,28 @@ const PHASES = [
 const canvas = document.getElementById('grid-canvas');
 const ctx    = canvas.getContext('2d');
 
-let logicalN        = 16;  // user-chosen side length
-let N               = 16;  // current display size
-let logicalGrid     = [];  // data at logicalN×logicalN
-let grid            = [];  // current display grid N×N
+let logicalN        = 16;
+let N               = 16;
+let logicalGrid     = [];      // regular Array of 0/1
+let grid            = null;    // Uint8Array for display
 let ops             = [];
 let opIdx           = 0;
-let currentPhaseNum = 0;   // 0 | 'PAD' | 1–8 | 'UNPAD'
+let currentPhaseNum = 0;
 let suppressDraw    = false;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function nextValidN(n) {
-  return VALID_SIZES.find(v => v >= n) || 256;
-}
+function nextValidN(n)    { return VALID_SIZES.find(v => v >= n) || 256; }
+function isPaddingNeeded(){ return nextValidN(logicalN) !== logicalN; }
 
-function isPaddingNeeded() {
-  return nextValidN(logicalN) !== logicalN;
-}
-
-// Phase order for done/active tracking. Phase 0 (reset) is outside this list.
 function getPhaseOrder() {
   return isPaddingNeeded()
     ? ['PAD', 1, 2, 3, 4, 5, 6, 7, 8, 'UNPAD']
     : [1, 2, 3, 4, 5, 6, 7, 8];
 }
 
-function phaseIndex(ph) {
-  return getPhaseOrder().indexOf(ph);
-}
+function phaseIndex(ph) { return getPhaseOrder().indexOf(ph); }
 
 function getBlockSize(n) { return Math.round(Math.pow(n, 0.75)); }
 function getNumBlocks(n) { return Math.round(n / getBlockSize(n)); }
@@ -543,106 +620,166 @@ function getSnakeIndices(r0, c0, r1, c1) {
   const idx = [];
   for (let r = r0; r <= r1; r++) {
     const fwd = (r - r0) % 2 === 0;
-    for (let ci = 0; ci <= c1 - c0; ci++) {
+    for (let ci = 0; ci <= c1 - c0; ci++)
       idx.push([r, fwd ? c0 + ci : c1 - ci]);
-    }
   }
   return idx;
 }
 
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-}
-
 // ---------------------------------------------------------------------------
-// Sort primitive — odd-even transposition with early exit.
-// All regions step in lockstep; disjoint regions = truly parallel in JS.
-// Two consecutive no-swap passes = sorted (one no-swap pass is insufficient).
+// Parallel odd-even transposition — async, all pairs fire simultaneously.
+// Collects every pair across all regions into one flat Int32Array per pass,
+// splits evenly across N_WORKERS workers, awaits all before the next pass.
+// Early exit: 2 consecutive no-swap passes = sorted.
 // ---------------------------------------------------------------------------
-function parallelOddEven(g, n, regions) {
-  if (regions.length === 0) return;
+async function parallelOddEven(g, n, regions) {
+  if (!regions.length) return;
   const maxLen = Math.max(...regions.map(r => r.length));
   let noSwap = 0;
+
   for (let t = 0; t < maxLen && noSwap < 2; t++) {
     const start = t % 2;
-    let swapped = false;
-    for (const idx of regions) {
-      for (let j = start; j + 1 < idx.length; j += 2) {
-        const [ra, ca] = idx[j];
-        const [rb, cb] = idx[j + 1];
-        if (g[ra * n + ca] > g[rb * n + cb]) {
-          const tmp = g[ra * n + ca];
-          g[ra * n + ca] = g[rb * n + cb];
-          g[rb * n + cb] = tmp;
-          swapped = true;
-        }
-      }
-    }
-    noSwap = swapped ? 0 : noSwap + 1;
+    const buf   = []; // will become Int32Array
+
+    for (const idx of regions)
+      for (let j = start; j + 1 < idx.length; j += 2)
+        buf.push(idx[j][0] * n + idx[j][1],
+                 idx[j+1][0] * n + idx[j+1][1]);
+
+    if (!buf.length) { noSwap++; continue; }
+
+    const swaps = await dispatchPairs(new Int32Array(buf));
+    noSwap = swaps > 0 ? 0 : noSwap + 1;
   }
 }
 
 // ---------------------------------------------------------------------------
-// Grid initialisation
+// Run all 8 phases on g (Uint8Array view of SAB), async.
+// push(phaseNum) is called after each phase to snapshot the state.
 // ---------------------------------------------------------------------------
-function initGrid() {
-  logicalN = Math.max(16, Math.min(256, parseInt(document.getElementById('grid-size').value) || 16));
-  document.getElementById('grid-size').value = logicalN;
+async function runPhases(g, n, push) {
+  const bs = getBlockSize(n);
+  const nb = getNumBlocks(n);
+  const k  = getNumSlices(n);
+  const sw = Math.floor(n / k);
 
-  N               = logicalN;
-  currentPhaseNum = 0;
+  function allBlocks() {
+    const r = [];
+    for (let br = 0; br < nb; br++)
+      for (let bc = 0; bc < nb; bc++)
+        r.push(getSnakeIndices(br*bs, bc*bs, (br+1)*bs-1, (bc+1)*bs-1));
+    return r;
+  }
 
-  const total = logicalN * logicalN;
-  logicalGrid = Array.from({ length: total }, () => Math.random() < 0.5 ? 0 : 1);
-  grid = logicalGrid.slice();
+  // Phase 1
+  await parallelOddEven(g, n, allBlocks());
+  push(1);
 
-  ops   = buildAllOps();
-  opIdx = 0;
-  document.getElementById('btn-step').disabled = false;
+  // Phase 2 — pure column permutation, no compare-swap, stays on main thread
+  {
+    const h = g.slice(0, n * n);
+    for (let r = 0; r < n; r++)
+      for (let c = 0; c < n; c++) {
+        const nc = (c % k) * sw + Math.floor(c / k);
+        h[r * n + nc] = g[r * n + c];
+      }
+    g.set(h, 0);
+  }
+  push(2);
 
-  updateUI();
-  updatePhaseButtons();
-  drawGrid();
+  // Phase 3
+  await parallelOddEven(g, n, allBlocks());
+  push(3);
+
+  // Phase 4 — columns
+  {
+    const cols = [];
+    for (let c = 0; c < n; c++) {
+      const idx = [];
+      for (let r = 0; r < n; r++) idx.push([r, c]);
+      cols.push(idx);
+    }
+    await parallelOddEven(g, n, cols);
+  }
+  push(4);
+
+  // Phase 5 — block pairs 1+2, 3+4, ...
+  {
+    const regs = [];
+    for (let vs = 0; vs < k; vs++) {
+      const c0 = vs * sw, c1 = c0 + sw - 1;
+      for (let p = 0; p + 1 < nb; p += 2)
+        regs.push(getSnakeIndices(p*bs, c0, Math.min((p+2)*bs-1, n-1), c1));
+    }
+    if (regs.length) await parallelOddEven(g, n, regs);
+  }
+  push(5);
+
+  // Phase 6 — block pairs 2+3, 4+5, ...
+  {
+    const regs = [];
+    for (let vs = 0; vs < k; vs++) {
+      const c0 = vs * sw, c1 = c0 + sw - 1;
+      for (let p = 1; p + 1 < nb; p += 2)
+        regs.push(getSnakeIndices(p*bs, c0, Math.min((p+2)*bs-1, n-1), c1));
+    }
+    if (regs.length) await parallelOddEven(g, n, regs);
+  }
+  push(6);
+
+  // Phase 7 — rows
+  {
+    const rows = [];
+    for (let r = 0; r < n; r++) {
+      const idx = [];
+      if (r % 2 === 0) for (let c = 0; c < n; c++) idx.push([r, c]);
+      else             for (let c = n-1; c >= 0; c--) idx.push([r, c]);
+      rows.push(idx);
+    }
+    await parallelOddEven(g, n, rows);
+  }
+  push(7);
+
+  // Phase 8 — full snake
+  await parallelOddEven(g, n, [getSnakeIndices(0, 0, n-1, n-1)]);
+  push(8);
 }
 
 // ---------------------------------------------------------------------------
-// Build all ops — precompute every phase snapshot including PAD/UNPAD.
-// Each op: { phaseNum, displayN, gridSnapshot } | { type: 'done' }
+// Build all ops — async; uses sharedGrid (SAB-backed) as working array.
 // ---------------------------------------------------------------------------
-function buildAllOps() {
+async function buildAllOps() {
   const paddedN  = nextValidN(logicalN);
   const needsPad = paddedN !== logicalN;
   const list     = [];
-  let g, workN;
+  const g        = sharedGrid; // Uint8Array view of SAB
+  let   workN;
 
   if (needsPad) {
     workN = paddedN;
-    g = new Array(paddedN * paddedN).fill(1);
-    const paddedSnake = getSnakeIndices(0, 0, paddedN  - 1, paddedN  - 1);
-    const logSnake    = getSnakeIndices(0, 0, logicalN - 1, logicalN - 1);
-    logSnake.forEach(([r, c], i) => {
-      const [pr, pc] = paddedSnake[i];
+    g.fill(1, 0, paddedN * paddedN);
+    const ps = getSnakeIndices(0, 0, paddedN  - 1, paddedN  - 1);
+    const ls = getSnakeIndices(0, 0, logicalN - 1, logicalN - 1);
+    ls.forEach(([r, c], i) => {
+      const [pr, pc] = ps[i];
       g[pr * paddedN + pc] = logicalGrid[r * logicalN + c];
     });
-    list.push({ phaseNum: 'PAD', displayN: paddedN, gridSnapshot: g.slice() });
+    list.push({ phaseNum: 'PAD', displayN: paddedN, gridSnapshot: g.slice(0, paddedN * paddedN) });
   } else {
     workN = logicalN;
-    g     = logicalGrid.slice();
+    g.set(logicalGrid, 0);
   }
 
-  runPhases(g, workN, (phaseNum) => {
-    list.push({ phaseNum, displayN: workN, gridSnapshot: g.slice() });
+  await runPhases(g, workN, ph => {
+    list.push({ phaseNum: ph, displayN: workN, gridSnapshot: g.slice(0, workN * workN) });
   });
 
   if (needsPad) {
-    const paddedSnake = getSnakeIndices(0, 0, paddedN  - 1, paddedN  - 1);
-    const logSnake    = getSnakeIndices(0, 0, logicalN - 1, logicalN - 1);
-    const out = new Array(logicalN * logicalN).fill(0);
-    paddedSnake.slice(0, logicalN * logicalN).forEach(([r, c], i) => {
-      const [lr, lc] = logSnake[i];
+    const ps  = getSnakeIndices(0, 0, paddedN  - 1, paddedN  - 1);
+    const ls  = getSnakeIndices(0, 0, logicalN - 1, logicalN - 1);
+    const out = new Uint8Array(logicalN * logicalN);
+    ps.slice(0, logicalN * logicalN).forEach(([r, c], i) => {
+      const [lr, lc] = ls[i];
       out[lr * logicalN + lc] = g[r * paddedN + c];
     });
     list.push({ phaseNum: 'UNPAD', displayN: logicalN, gridSnapshot: out });
@@ -653,116 +790,46 @@ function buildAllOps() {
 }
 
 // ---------------------------------------------------------------------------
-// Run all 8 algorithm phases on grid g of size n.
-// All phases use odd-even transposition (mesh-faithful simulation).
-// Phase 2 is a pure column permutation (unshuffle), no sort needed.
+// Grid initialisation — async; shows computing state while workers run.
 // ---------------------------------------------------------------------------
-function runPhases(g, n, push) {
-  const bs = getBlockSize(n);
-  const nb = getNumBlocks(n);
-  const k  = getNumSlices(n);
-  const sw = Math.floor(n / k);
+async function initGrid() {
+  logicalN = Math.max(16, Math.min(256, parseInt(document.getElementById('grid-size').value) || 16));
+  document.getElementById('grid-size').value = logicalN;
 
-  function allBlockRegions() {
-    const r = [];
-    for (let br = 0; br < nb; br++)
-      for (let bc = 0; bc < nb; bc++)
-        r.push(getSnakeIndices(br * bs, bc * bs, (br + 1) * bs - 1, (bc + 1) * bs - 1));
-    return r;
-  }
+  N               = logicalN;
+  currentPhaseNum = 0;
 
-  // Phase 1 — Sort each block in snake order
-  parallelOddEven(g, n, allBlockRegions());
-  push(1);
+  logicalGrid = Array.from({ length: logicalN * logicalN }, () => Math.random() < 0.5 ? 0 : 1);
+  grid        = new Uint8Array(logicalGrid);
 
-  // Phase 2 — N^{1/4}-way unshuffle of columns (permutation only, no compare-swap)
-  {
-    const newG = g.slice();
-    for (let r = 0; r < n; r++)
-      for (let c = 0; c < n; c++) {
-        const nc = (c % k) * sw + Math.floor(c / k);
-        newG[r * n + nc] = g[r * n + c];
-      }
-    for (let i = 0; i < g.length; i++) g[i] = newG[i];
-  }
-  push(2);
+  // Lock UI and show computing state
+  document.getElementById('btn-step').disabled  = true;
+  document.getElementById('btn-reset').disabled = true;
+  document.querySelectorAll('.phase-btn').forEach(b => b.disabled = true);
 
-  // Phase 3 — Sort each block again
-  parallelOddEven(g, n, allBlockRegions());
-  push(3);
+  const badge = document.getElementById('phase-badge');
+  badge.className   = 'phase-badge computing';
+  badge.textContent = '⋯';
+  document.getElementById('phase-title-text').textContent = 'Υπολογισμός…';
+  document.getElementById('phase-desc-text').textContent  =
+    `Εκτελούνται ${N_WORKERS} Web Workers παράλληλα — αναμονή ολοκλήρωσης.`;
+  document.getElementById('phase-label').textContent = '—';
 
-  // Phase 4 — Sort each column ascending (parallel odd-even transposition)
-  {
-    const cols = [];
-    for (let c = 0; c < n; c++) {
-      const idx = [];
-      for (let r = 0; r < n; r++) idx.push([r, c]);
-      cols.push(idx);
-    }
-    parallelOddEven(g, n, cols);
-  }
-  push(4);
+  drawGrid();
 
-  // Phase 5 — Sort block pairs 1+2, 3+4, ... per vertical slice
-  {
-    const regs = [];
-    for (let vs = 0; vs < k; vs++) {
-      const c0 = vs * sw, c1 = c0 + sw - 1;
-      for (let p = 0; p + 1 < nb; p += 2)
-        regs.push(getSnakeIndices(p * bs, c0, Math.min((p + 2) * bs - 1, n - 1), c1));
-    }
-    if (regs.length) parallelOddEven(g, n, regs);
-  }
-  push(5);
+  ops   = await buildAllOps();
+  opIdx = 0;
 
-  // Phase 6 — Sort block pairs 2+3, 4+5, ... per vertical slice
-  {
-    const regs = [];
-    for (let vs = 0; vs < k; vs++) {
-      const c0 = vs * sw, c1 = c0 + sw - 1;
-      for (let p = 1; p + 1 < nb; p += 2)
-        regs.push(getSnakeIndices(p * bs, c0, Math.min((p + 2) * bs - 1, n - 1), c1));
-    }
-    if (regs.length) parallelOddEven(g, n, regs);
-  }
-  push(6);
+  document.getElementById('btn-step').disabled  = false;
+  document.getElementById('btn-reset').disabled = false;
 
-  // Phase 7 — Sort each row in snake direction (parallel odd-even transposition)
-  {
-    const rows = [];
-    for (let r = 0; r < n; r++) {
-      const idx = [];
-      if (r % 2 === 0) for (let c = 0; c < n; c++) idx.push([r, c]);
-      else             for (let c = n - 1; c >= 0; c--) idx.push([r, c]);
-      rows.push(idx);
-    }
-    parallelOddEven(g, n, rows);
-  }
-  push(7);
-
-  // Phase 8 — 2·N^{3/4} passes of odd-even transposition on the full snake
-  {
-    const snakeIdx   = getSnakeIndices(0, 0, n - 1, n - 1);
-    const totalSteps = 2 * bs;
-    const vals       = snakeIdx.map(([r, c]) => g[r * n + c]);
-    for (let t = 0; t < totalSteps; t++) {
-      const start = t % 2;
-      for (let j = start; j + 1 < snakeIdx.length; j += 2) {
-        if (vals[j] > vals[j + 1]) {
-          [vals[j], vals[j + 1]] = [vals[j + 1], vals[j]];
-          const [ra, ca] = snakeIdx[j];
-          const [rb, cb] = snakeIdx[j + 1];
-          g[ra * n + ca] = vals[j];
-          g[rb * n + cb] = vals[j + 1];
-        }
-      }
-    }
-  }
-  push(8);
+  updateUI();
+  updatePhaseButtons();
+  drawGrid();
 }
 
 // ---------------------------------------------------------------------------
-// Step forward — advance one phase
+// Step forward — synchronous; reads from pre-computed snapshot cache.
 // ---------------------------------------------------------------------------
 function stepForward() {
   if (opIdx >= ops.length) return;
@@ -770,9 +837,7 @@ function stepForward() {
 
   if (op.type === 'done') {
     document.getElementById('btn-step').disabled = true;
-    updateUI();
-    updatePhaseButtons();
-    drawGrid();
+    updateUI(); updatePhaseButtons(); drawGrid();
     return;
   }
 
@@ -780,57 +845,40 @@ function stepForward() {
   grid            = op.gridSnapshot.slice();
   currentPhaseNum = op.phaseNum;
 
-  if (opIdx >= ops.length || ops[opIdx].type === 'done') {
+  if (opIdx >= ops.length || ops[opIdx].type === 'done')
     document.getElementById('btn-step').disabled = true;
-  }
 
-  if (!suppressDraw) {
-    updateUI();
-    updatePhaseButtons();
-    drawGrid();
-  }
+  if (!suppressDraw) { updateUI(); updatePhaseButtons(); drawGrid(); }
 }
 
 // ---------------------------------------------------------------------------
-// Jump to phase — instant: reuses the ops already built by initGrid().
-// No recomputation; just resets opIdx and reads snapshots from the cache.
+// Jump to phase — synchronous; reuses cached ops, no recomputation.
 // ---------------------------------------------------------------------------
 function jumpToPhase(targetPhase) {
   opIdx           = 0;
   N               = logicalN;
-  grid            = logicalGrid.slice();
+  grid            = new Uint8Array(logicalGrid);
   currentPhaseNum = 0;
   document.getElementById('btn-step').disabled = false;
 
-  if (targetPhase === 0) {
-    updateUI();
-    updatePhaseButtons();
-    drawGrid();
-    return;
-  }
+  if (targetPhase === 0) { updateUI(); updatePhaseButtons(); drawGrid(); return; }
 
   suppressDraw = true;
   while (opIdx < ops.length) {
     const op = ops[opIdx];
     if (op.type === 'done') break;
-    if (op.phaseNum === targetPhase) {
-      suppressDraw = false;
-      stepForward();
-      return;
-    }
+    if (op.phaseNum === targetPhase) { suppressDraw = false; stepForward(); return; }
     stepForward();
   }
   suppressDraw = false;
-  updateUI();
-  updatePhaseButtons();
-  drawGrid();
+  updateUI(); updatePhaseButtons(); drawGrid();
 }
 
 // ---------------------------------------------------------------------------
 // Draw
 // ---------------------------------------------------------------------------
 function drawGrid() {
-  if (suppressDraw) return;
+  if (suppressDraw || !grid) return;
 
   const bound = Math.min(560, window.innerWidth - 48);
   const cell  = Math.max(1, Math.floor(bound / N));
@@ -847,14 +895,12 @@ function drawGrid() {
   ctx.imageSmoothingEnabled = false;
   ctx.clearRect(0, 0, size, size);
 
-  for (let r = 0; r < N; r++) {
+  for (let r = 0; r < N; r++)
     for (let c = 0; c < N; c++) {
       ctx.fillStyle = grid[r * N + c] === 1 ? '#e8eaf0' : '#0b0e14';
       ctx.fillRect(c * cell, r * cell, cell, cell);
     }
-  }
 
-  // Block boundaries — only when N is a valid size
   if (VALID_SIZES.includes(N)) {
     const bs   = getBlockSize(N);
     const nb   = getNumBlocks(N);
@@ -893,13 +939,12 @@ function updateUI() {
       (typeof p.num === 'number') ? `${p.num} / 8` : p.num;
   }
 
-  // Dots track phases 1–8 only
   const curIdx = (currentPhaseNum === 0) ? -1 : phaseIndex(currentPhaseNum);
   for (let i = 1; i <= 8; i++) {
     const dot    = document.getElementById(`pdot-${i}`);
     const dotIdx = phaseIndex(i);
     dot.className = 'phase-dot';
-    if (dotIdx < curIdx)          dot.classList.add('done');
+    if (dotIdx < curIdx)            dot.classList.add('done');
     else if (i === currentPhaseNum) dot.classList.add('current');
   }
 }
@@ -913,18 +958,17 @@ function updatePhaseButtons() {
   document.getElementById('phase-btn-unpad').style.display = padNeeded ? '' : 'none';
 
   document.querySelectorAll('.phase-btn').forEach(btn => {
-    const raw = btn.dataset.phase;
-    const ph  = (raw === 'PAD') ? 'PAD' : (raw === 'UNPAD') ? 'UNPAD' : parseInt(raw);
+    const raw   = btn.dataset.phase;
+    const ph    = (raw === 'PAD') ? 'PAD' : (raw === 'UNPAD') ? 'UNPAD' : parseInt(raw);
     const phIdx = (ph === 0) ? -1 : order.indexOf(ph);
 
     btn.className = 'phase-btn';
     btn.disabled  = false;
 
-    if (ph === currentPhaseNum || (ph === 0 && currentPhaseNum === 0)) {
+    if (ph === currentPhaseNum || (ph === 0 && currentPhaseNum === 0))
       btn.classList.add('active');
-    } else if (ph !== 0 && phIdx !== -1 && phIdx < curIdx) {
+    else if (ph !== 0 && phIdx !== -1 && phIdx < curIdx)
       btn.classList.add('done');
-    }
   });
 }
 
@@ -932,8 +976,8 @@ function updatePhaseButtons() {
 // Event listeners
 // ---------------------------------------------------------------------------
 document.getElementById('btn-step') .addEventListener('click', stepForward);
-document.getElementById('btn-reset').addEventListener('click', initGrid);
-document.getElementById('grid-size').addEventListener('change', initGrid);
+document.getElementById('btn-reset').addEventListener('click', () => initGrid());
+document.getElementById('grid-size').addEventListener('change', () => initGrid());
 
 document.querySelectorAll('.phase-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -946,9 +990,9 @@ document.querySelectorAll('.phase-btn').forEach(btn => {
 window.addEventListener('resize', drawGrid);
 
 // ---------------------------------------------------------------------------
-// Init
+// Boot: init worker pool, then first grid
 // ---------------------------------------------------------------------------
-initGrid();
+initWorkerPool().then(() => initGrid());
 </script>
 
 </body></html>
