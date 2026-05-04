@@ -382,34 +382,26 @@
   <div class="demo-card">
 
     <div class="demo-header">
-      <span class="demo-title">Προσομοίωση 3n-sort</span>
       <div class="controls">
         <span class="n-label">n =</span>
         <input type="number" id="grid-size" min="16" max="256" value="16">
         <button class="btn" id="btn-reset">Reset</button>
+        <span class="phase-jump-label">Φάση:</span>
+        <div class="phase-jump-row">
+          <button class="phase-btn" data-phase="0">0</button>
+          <button class="phase-btn" id="phase-btn-pad" data-phase="PAD" style="display:none">P</button>
+          <button class="phase-btn" data-phase="1">1</button>
+          <button class="phase-btn" data-phase="2">2</button>
+          <button class="phase-btn" data-phase="3">3</button>
+          <button class="phase-btn" data-phase="4">4</button>
+          <button class="phase-btn" data-phase="5">5</button>
+          <button class="phase-btn" data-phase="6">6</button>
+          <button class="phase-btn" data-phase="7">7</button>
+          <button class="phase-btn" data-phase="8">8</button>
+          <button class="phase-btn" id="phase-btn-unpad" data-phase="UNPAD" style="display:none">U</button>
+        </div>
         <button class="btn primary" id="btn-step">Επόμενη Φάση</button>
       </div>
-    </div>
-
-    <div class="step-indicator">
-      <span class="phase-jump-label">Μετάβαση σε φάση:</span>
-      <div class="phase-jump-row">
-        <button class="phase-btn" data-phase="0">0</button>
-        <button class="phase-btn" id="phase-btn-pad" data-phase="PAD" style="display:none">P</button>
-        <button class="phase-btn" data-phase="1">1</button>
-        <button class="phase-btn" data-phase="2">2</button>
-        <button class="phase-btn" data-phase="3">3</button>
-        <button class="phase-btn" data-phase="4">4</button>
-        <button class="phase-btn" data-phase="5">5</button>
-        <button class="phase-btn" data-phase="6">6</button>
-        <button class="phase-btn" data-phase="7">7</button>
-        <button class="phase-btn" data-phase="8">8</button>
-        <button class="phase-btn" id="phase-btn-unpad" data-phase="UNPAD" style="display:none">U</button>
-      </div>
-    </div>
-
-    <div class="grid-wrap">
-      <canvas id="grid-canvas" width="560" height="560"></canvas>
     </div>
 
     <div class="phase-panel">
@@ -428,6 +420,10 @@
         <div class="phase-dot" id="pdot-7"></div>
         <div class="phase-dot" id="pdot-8"></div>
       </div>
+    </div>
+
+    <div class="grid-wrap">
+      <canvas id="grid-canvas" width="560" height="560"></canvas>
     </div>
 
     <div class="step-indicator">
