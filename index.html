@@ -472,23 +472,23 @@ const PHASES = [
   },
   { num: 2,
     title: 'Φάση 2 — N^{1/4}-way unshuffle στηλών',
-    desc:  'Permutation μόνο (χωρίς compare-swap): οι στήλες κάθε block ανακατανέμονται round-robin στα N^{1/4} blocks της ίδιας οριζόντιας λωρίδας.'
+    desc:  'Οι στήλες κάθε block ανακατανέμονται με round robin τροπο στα blocks της ίδιας οριζόντιας γραμμής.'
   },
   { num: 3,
     title: 'Φάση 3 — Εκ νέου ταξινόμηση blocks',
-    desc:  'Κάθε block ταξινομείται ξανά παράλληλα σε snakelike διάταξη.'
+    desc:  'Κάθε block ταξινομείται ξανά σε snakelike διάταξη.'
   },
   { num: 4,
     title: 'Φάση 4 — Ταξινόμηση στηλών',
-    desc:  'Όλες οι N στήλες ταξινομούνται παράλληλα — κάθε ζεύγος compare-and-swap ανατίθεται σε worker.'
+    desc:  ' .'
   },
   { num: 5,
     title: 'Φάση 5 — Ταξινόμηση ζευγών blocks 1+2, 3+4 … ανά slice',
-    desc:  'Τα blocks 1+2, 3+4 κ.λπ. ταξινομούνται συλλογικά — κάθε ζεύγος σε ξεχωριστό worker.'
+    desc:  'Τα blocks 1+2, 3+4 κ.λπ. ταξινομούνται συλλογικά r.'
   },
   { num: 6,
     title: 'Φάση 6 — Ταξινόμηση ζευγών blocks 2+3, 4+5 … ανά slice',
-    desc:  'Τα blocks 2+3, 4+5 κ.λπ. ταξινομούνται συλλογικά — κάθε ζεύγος σε ξεχωριστό worker.'
+    desc:  'Τα blocks 2+3, 4+5 κ.λπ. ταξινομούνται συλλογικά .'
   },
   { num: 7,
     title: 'Φάση 7 — Ταξινόμηση γραμμών κατά snake',
@@ -496,7 +496,7 @@ const PHASES = [
   },
   { num: 8,
     title: 'Φάση 8 — Odd-even transposition στο συνολικό snake',
-    desc:  'Odd-even transposition πάνω στο N²-κυτταρικό φίδι — κάθε ζεύγος σε ξεχωριστό worker.'
+    desc:  'Odd-even transposition πάνω στο N² —.'
   },
   { num: 'UNPAD',
     title: 'Unpadding — Εξαγωγή αρχικού πλέγματος',
