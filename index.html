@@ -468,7 +468,7 @@ const PHASES = [
   },
   { num: 1,
     title: 'Φάση 1 — Ταξινόμηση blocks σε snakelike διάταξη',
-    desc:  'Κάθε block ταξινομείται παράλληλα — κάθε ζεύγος compare-and-swap σε ξεχωριστό Web Worker.'
+    desc:  'Κάθε block ταξινομείται ξανά σε snakelike διάταξη.'
   },
   { num: 2,
     title: 'Φάση 2 — N^{1/4}-way unshuffle στηλών',
@@ -480,15 +480,15 @@ const PHASES = [
   },
   { num: 4,
     title: 'Φάση 4 — Ταξινόμηση στηλών',
-    desc:  ' .'
+    desc:  'Οι στήλες ταξινομούνται σε φθίνουσα σειρά προς τα κάτω.'
   },
   { num: 5,
     title: 'Φάση 5 — Ταξινόμηση ζευγών blocks 1+2, 3+4 … ανά slice',
-    desc:  'Τα blocks 1+2, 3+4 κ.λπ. ταξινομούνται συλλογικά r.'
+    desc:  'Τα blocks 1+2, 3+4 κ.λπ. .'
   },
   { num: 6,
     title: 'Φάση 6 — Ταξινόμηση ζευγών blocks 2+3, 4+5 … ανά slice',
-    desc:  'Τα blocks 2+3, 4+5 κ.λπ. ταξινομούνται συλλογικά .'
+    desc:  'Τα blocks 2+3, 4+5 κ.λπ.  .'
   },
   { num: 7,
     title: 'Φάση 7 — Ταξινόμηση γραμμών κατά snake',
@@ -496,7 +496,7 @@ const PHASES = [
   },
   { num: 8,
     title: 'Φάση 8 — Odd-even transposition στο συνολικό snake',
-    desc:  'Odd-even transposition πάνω στο N² —.'
+    desc:  'Odd-even transposition πάνω στο N² snake —.'
   },
   { num: 'UNPAD',
     title: 'Unpadding — Εξαγωγή αρχικού πλέγματος',
