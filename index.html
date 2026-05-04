@@ -131,15 +131,6 @@
     color: var(--muted);
   }
 
-  .worker-badge {
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    color: var(--accent3);
-    border: 1px solid rgba(126,203,161,0.3);
-    border-radius: 4px;
-    padding: 2px 8px;
-  }
-
   .controls {
     display: flex;
     gap: 8px;
@@ -392,10 +383,7 @@
   <div class="demo-card">
 
     <div class="demo-header">
-      <div style="display:flex;gap:12px;align-items:center">
-        <span class="demo-title">Προσομοίωση 3n-sort</span>
-        <span class="worker-badge" id="worker-badge">⋯ workers</span>
-      </div>
+      <span class="demo-title">Προσομοίωση 3n-sort</span>
       <div class="controls">
         <span class="n-label">n =</span>
         <input type="number" id="grid-size" min="16" max="256" value="16">
@@ -555,7 +543,6 @@ async function initWorkerPool() {
     }));
   }
   await Promise.all(readyPromises);
-  document.getElementById('worker-badge').textContent = `${N_WORKERS} workers`;
 }
 
 // Send a flat Int32Array of pair indices to the pool — all workers fire in parallel.
