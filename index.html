@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="el"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
-<!-- Register COI Service Worker as early as possible so SharedArrayBuffer is
-     available. On the very first load the SW registers and the page reloads
-     automatically; every subsequent load is cross-origin-isolated. -->
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./coi-serviceworker.js').then(() => {
