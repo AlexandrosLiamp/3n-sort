@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="el"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
+<!-- Register COI Service Worker as early as possible so SharedArrayBuffer is
+     available. On the very first load the SW registers and the page reloads
+     automatically; every subsequent load is cross-origin-isolated. -->
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./coi-serviceworker.js').then(() => {
@@ -854,6 +857,60 @@ function jumpToPhase(targetPhase) {
 }
 
 // ---------------------------------------------------------------------------
+// Potentially-dirty region per phase (0-1 grid).
+// "Dirty" = mixed cells (both 0 and 1) within the structure that phase sorts.
+// Returns a boolean[] of length n*n. Only phases 1,3,4,5,6,7 are annotated.
+// ---------------------------------------------------------------------------
+function computeDirtyCells(g, n, phase) {
+  const dirty = new Array(n * n).fill(false);
+
+  // Mark every row that is mixed within columns [c0,c1] and rows [r0,r1].
+  function markMixedRows(r0, r1, c0, c1) {
+    for (let r = r0; r <= r1; r++) {
+      let has0 = false, has1 = false;
+      for (let c = c0; c <= c1; c++) {
+        if (g[r * n + c] === 0) has0 = true; else has1 = true;
+      }
+      if (has0 && has1)
+        for (let c = c0; c <= c1; c++) dirty[r * n + c] = true;
+    }
+  }
+
+  if (phase === 1 || phase === 3) {
+    // Mixed rows within each block (restricted to the block's columns).
+    const bs = getBlockSize(n), nb = getNumBlocks(n);
+    for (let br = 0; br < nb; br++)
+      for (let bc = 0; bc < nb; bc++)
+        markMixedRows(br * bs, (br + 1) * bs - 1, bc * bs, (bc + 1) * bs - 1);
+  } else if (phase === 4) {
+    // Mixed rows across the full width.
+    markMixedRows(0, n - 1, 0, n - 1);
+  } else if (phase === 5 || phase === 6) {
+    // Mixed rows within each vertical slice.
+    const k = getNumSlices(n), sw = Math.floor(n / k);
+    for (let vs = 0; vs < k; vs++)
+      markMixedRows(0, n - 1, vs * sw, vs * sw + sw - 1);
+  } else if (phase === 7) {
+    // Contiguous global-snake segment from the first 1 to the last 0.
+    const snake = getSnakeIndices(0, 0, n - 1, n - 1);
+    let first1 = -1, last0 = -1;
+    for (let i = 0; i < snake.length; i++) {
+      const [r, c] = snake[i];
+      const v = g[r * n + c];
+      if (v === 1 && first1 === -1) first1 = i;
+      if (v === 0) last0 = i;
+    }
+    if (first1 !== -1 && last0 !== -1 && first1 <= last0)
+      for (let i = first1; i <= last0; i++) {
+        const [r, c] = snake[i];
+        dirty[r * n + c] = true;
+      }
+  }
+
+  return dirty;
+}
+
+// ---------------------------------------------------------------------------
 // Draw
 // ---------------------------------------------------------------------------
 function drawGrid() {
@@ -891,6 +948,28 @@ function drawGrid() {
     for (let br = 0; br < nb; br++)
       for (let bc = 0; bc < nb; bc++)
         ctx.strokeRect(bc * bpx + half, br * bpx + half, bpx - lw, bpx - lw);
+  }
+
+  // Red outline of the potentially-dirty region — phases 1,3,4,5,6,7 only.
+  // Perimeter only: an edge is drawn solely where the neighbour is not dirty,
+  // so side-by-side dirty cells merge without an internal dividing line.
+  if ([1, 3, 4, 5, 6, 7].includes(currentPhaseNum)) {
+    const dirty = computeDirtyCells(grid, N, currentPhaseNum);
+    const isDirty = (r, c) => r >= 0 && r < N && c >= 0 && c < N && dirty[r * N + c];
+    ctx.strokeStyle = '#e27e7e';
+    ctx.lineWidth   = N <= 16 ? 2.5 : 1.5;
+    ctx.beginPath();
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        if (!dirty[r * N + c]) continue;
+        const x = c * cell, y = r * cell;
+        if (!isDirty(r - 1, c)) { ctx.moveTo(x, y);               ctx.lineTo(x + cell, y); }
+        if (!isDirty(r + 1, c)) { ctx.moveTo(x, y + cell);        ctx.lineTo(x + cell, y + cell); }
+        if (!isDirty(r, c - 1)) { ctx.moveTo(x, y);               ctx.lineTo(x, y + cell); }
+        if (!isDirty(r, c + 1)) { ctx.moveTo(x + cell, y);        ctx.lineTo(x + cell, y + cell); }
+      }
+    }
+    ctx.stroke();
   }
 }
 
