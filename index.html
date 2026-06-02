@@ -469,7 +469,7 @@
         <span class="n-label">n =</span>
         <input type="number" id="grid-size" min="16" max="256" value="81">
         <button class="btn" id="btn-reset">Reset</button>
-        <button class="btn" id="btn-draw">Σχεδίαση</button>
+        <button class="btn" id="btn-draw" disabled>Σχεδίαση</button>
         <span class="phase-jump-label" data-i18n="jumpLabel">Φάση:</span>
         <div class="phase-jump-row">
           <button class="phase-btn" data-phase="0">0</button>
@@ -558,8 +558,8 @@ const PHASES = [
   { num: 'PAD',
     title: { el: 'Padding — Επέκταση σε έγκυρο μέγεθος',
              en: 'Padding — Expand to a valid size' },
-    desc:  { el: 'Το πλέγμα επεκτείνεται στο επόμενο έγκυρο μέγεθος. Οι επιπλέον θέσεις γεμίζουν με 1.',
-             en: 'The grid is expanded to the next valid size. The extra cells are filled with 1.' }
+    desc:  { el: 'Το πλέγμα επεκτείνεται στο επόμενο έγκυρο μέγεθος (k⁴). Το αρχικό πλέγμα παραμένει ως έχει στην επάνω-αριστερή γωνία· οι επιπλέον γραμμές (κάτω) και στήλες (δεξιά) γεμίζουν με 1 (μέγιστη τιμή), ώστε μετά την ταξινόμηση να βρεθούν στο τέλος.',
+             en: 'The grid is expanded to the next valid size (k⁴). The original grid stays intact in the top-left corner; the extra rows (bottom) and columns (right) are filled with 1 (max value) so they end up last after sorting.' }
   },
   { num: 1,
     title: { el: 'Φάση 1 — Ταξινόμηση blocks σε snakelike διάταξη',
@@ -928,13 +928,10 @@ async function buildAllOps() {
 
   if (needsPad) {
     workN = paddedN;
-    g.fill(1, 0, paddedN * paddedN);
-    const ps = getSnakeIndices(0, 0, paddedN  - 1, paddedN  - 1);
-    const ls = getSnakeIndices(0, 0, logicalN - 1, logicalN - 1);
-    ls.forEach(([r, c], i) => {
-      const [pr, pc] = ps[i];
-      g[pr * paddedN + pc] = logicalGrid[r * logicalN + c];
-    });
+    g.fill(1, 0, paddedN * paddedN);          // pad cells start as 1 (max value)
+    for (let r = 0; r < logicalN; r++)        // original stays intact in the top-left;
+      for (let c = 0; c < logicalN; c++)      // extra right columns + bottom rows remain 1
+        g[r * paddedN + c] = logicalGrid[r * logicalN + c];
     list.push({ phaseNum: 'PAD', displayN: paddedN, gridSnapshot: g.slice(0, paddedN * paddedN) });
   } else {
     workN = logicalN;
@@ -981,6 +978,7 @@ async function initGrid() {
 async function computeOps() {
   document.getElementById('btn-step').disabled  = true;
   document.getElementById('btn-reset').disabled = true;
+  document.getElementById('btn-draw').disabled  = true;
   document.querySelectorAll('.phase-btn').forEach(b => b.disabled = true);
 
   const badge = document.getElementById('phase-badge');
@@ -996,6 +994,7 @@ async function computeOps() {
 
   document.getElementById('btn-step').disabled  = false;
   document.getElementById('btn-reset').disabled = false;
+  document.getElementById('btn-draw').disabled  = false;
 
   updateUI();
   updatePhaseButtons();
