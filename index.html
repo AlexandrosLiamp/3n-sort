@@ -313,7 +313,7 @@
 
   /* ===================  LANGUAGE SWITCHER  =================== */
   .lang-switch {
-    position: fixed;
+    position: absolute;
     top: 16px;
     right: 16px;
     z-index: 20;
@@ -609,7 +609,9 @@
 
     /* let control rows wrap instead of scroll on small screens */
     .control-row { flex-wrap: wrap; overflow-x: visible; }
-    .phase-jump-row { flex-wrap: wrap; }
+    /* full-width line so the 0–8 buttons wrap instead of overflowing offscreen
+       (overrides the global .control-row > * flex-shrink:0) */
+    .phase-jump-row { flex-wrap: wrap; flex: 1 1 100%; }
     .spacer { display: none; }
   }
 
