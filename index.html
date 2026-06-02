@@ -13,7 +13,7 @@
 </script>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3n-sort — Παράλληλη Οπτικοποίηση (Web Workers)</title>
+<title>3n-sort — Παράλληλη Οπτικοποίηση</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20128%20128%22%20width%3D%22128%22%20height%3D%22128%22%20role%3D%22img%22%20aria-label%3D%223n-sort%20logo%22%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%22120%22%20height%3D%22120%22%20rx%3D%2226%22%20fill%3D%22%230b0e14%22%20stroke%3D%22%23e2c97e%22%20stroke-opacity%3D%220.45%22%20stroke-width%3D%222%22%2F%3E%3Cpolyline%20fill%3D%22none%22%20stroke%3D%22%23e2c97e%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-opacity%3D%220.9%22%20points%3D%2230%2C30%20102%2C30%20102%2C54%2030%2C54%2030%2C78%20102%2C78%20102%2C102%2030%2C102%22%2F%3E%3Cg%20stroke%3D%22%233a4252%22%20stroke-width%3D%220.75%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%23121212%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%23202020%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%232f2f2f%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%233d3d3d%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%234b4b4b%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%235a5a5a%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%23686868%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%23767676%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23848484%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23939393%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23a1a1a1%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23afafaf%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23bdbdbd%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23cccccc%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23dadada%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23e8e8e8%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,700;1,300;1,700&display=swap" rel="stylesheet">
@@ -711,7 +711,9 @@
         </div>
         <input type="number" id="grid-size" min="16" max="256" value="81">
         <span class="spacer"></span>
-        <button class="btn ghost" id="btn-reset" data-i18n="randomGrid">Τυχαίο Πλέγμα</button>
+        <span class="ctl-label" data-i18n="frameLabel">Πλαίσιο:</span>
+        <button class="btn ghost" id="btn-reset" data-i18n="randomGrid">Τυχαίο</button>
+        <span class="ctl-label">/</span>
         <button class="btn ghost" id="btn-draw" disabled>Σχεδίασε</button>
       </div>
       <div class="control-row">
@@ -873,6 +875,7 @@ const STRINGS = {
     heroEyebrow:    'Διαδραστική Παρουσίαση Αλγορίθμου',
     heroSub:        'Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n×n επεξεργαστών.',
     gridSize:       'Μέγεθος:',
+    frameLabel:     'Πλαίσιο:',
     jumpLabel:      'Φάση:',
     btnStep:        'Επόμενη Φάση',
     legendBlock:    'Όριο block',
@@ -884,19 +887,20 @@ const STRINGS = {
     drawHint:       'Ζωγραφίστε στο πλέγμα με το ποντίκι. Επιλέξτε χρώμα και μέγεθος πινέλου, και πατήστε «Ολοκλήρωση» για εκτέλεση.',
     sizeLabel:      'Μέγεθος',
     clear:          'Καθαρισμός',
-    randomGrid:     'Τυχαίο Πλέγμα',
+    randomGrid:     'Τυχαίο',
     colorWhite:     'Λευκό',
     colorBlack:     'Μαύρο',
     ready:          'Έτοιμο',
     readyDesc:      'Επιλέξτε μέγεθος πλέγματος και πατήστε Επόμενη Φάση.',
     readyDescPad:   (a, b) => `Μέγεθος ${a}×${a} — padding σε ${b}×${b}. Πατήστε P ή Επόμενη Φάση.`,
     computingTitle: 'Υπολογισμός…',
-    computingDesc:  'Υπολογισμός, παρακαλώ περιμένετε.'
+    computingDesc:  'Παρακαλώ περιμένετε.'
   },
   en: {
     heroEyebrow:    'Interactive Algorithm Presentation',
     heroSub:        'Parallel sorting algorithm for an n×n mesh of processors.',
     gridSize:       'Size:',
+    frameLabel:     'Grid:',
     jumpLabel:      'Phase:',
     btnStep:        'Next Phase',
     legendBlock:    'Block boundary',
@@ -908,7 +912,7 @@ const STRINGS = {
     drawHint:       'Paint on the grid with the mouse. Pick a colour and brush size, then press “Finish” to run.',
     sizeLabel:      'Size',
     clear:          'Clear',
-    randomGrid:     'Random Grid',
+    randomGrid:     'Random',
     colorWhite:     'White',
     colorBlack:     'Black',
     ready:          'Ready',
