@@ -775,7 +775,7 @@
           <input type="number" id="grid-size" min="16" max="256" value="81">
         </div>
         <span class="spacer"></span>
-        <span class="ctl-label" data-i18n="frameLabel">Πλαίσιο:</span>
+        <span class="ctl-label" data-i18n="frameLabel">Τιμές:</span>
         <div class="seg">
           <button class="btn mode-btn" id="btn-reset" data-i18n="randomGrid">Τυχαίο</button>
           <button class="btn mode-btn" id="btn-draw" disabled>Σχεδίασε</button>
@@ -959,15 +959,15 @@ const STRINGS = {
     heroEyebrow:    'Διαδραστική Παρουσίαση Αλγορίθμου',
     heroSub:        'Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n×n επεξεργαστών.',
     gridSize:       'Μέγεθος:',
-    frameLabel:     'Πλαίσιο:',
+    frameLabel:     'Τιμές:',
     jumpLabel:      'Φάση:',
     btnStep:        'Επόμενη Φάση',
-    btnPlay:        '▶ Αναπαραγωγή',
+    btnPlay:        '▶',
     btnStop:        '⏸ Διακοπή',
-    btnPlayAll:     '▶▶ Όλα',
+    btnPlayAll:     '▶▶',
     btnPrev:        '‹ Προηγούμενη',
-    btnPause:       '⏸ Παύση',
-    btnResume:      '▶ Συνέχεια',
+    btnPause:       '⏸',
+    btnResume:      '▶',
     legendBlock:    'Όριο block',
     legendDirty:    'Βρώμικη Περιοχή',
     modalHint:      'Κλικ εκτός ή Esc για κλείσιμο',
@@ -1008,15 +1008,15 @@ const STRINGS = {
     heroEyebrow:    'Interactive Algorithm Presentation',
     heroSub:        'Parallel sorting algorithm for an n×n mesh of processors.',
     gridSize:       'Size:',
-    frameLabel:     'Grid:',
+    frameLabel:     'Values:',
     jumpLabel:      'Phase:',
     btnStep:        'Next Phase',
-    btnPlay:        '▶ Play',
+    btnPlay:        '▶',
     btnStop:        '⏸ Stop',
-    btnPlayAll:     '▶▶ All',
+    btnPlayAll:     '▶▶',
     btnPrev:        '‹ Previous',
-    btnPause:       '⏸ Pause',
-    btnResume:      '▶ Resume',
+    btnPause:       '⏸',
+    btnResume:      '▶',
     legendBlock:    'Block boundary',
     legendDirty:    'Dirty region',
     modalHint:      'Click outside or press Esc to close',
@@ -1671,11 +1671,13 @@ function renderPhaseInfo() {
     if (mtitle) mtitle.textContent = t('ready');
   } else {
     const sym = (p.num === 'PAD') ? 'P' : (p.num === 'UNPAD') ? 'U' : p.num;
+    // Strip the leading "Φάση N — " / "Phase N — " — the badge already shows the number.
+    const title = p.title[LANG].replace(/^(?:Φάση|Phase)\s+\d+\s*—\s*/, '');
     badge.textContent = sym; badge.className = 'phase-badge active';
-    document.getElementById('phase-title-text').textContent = p.title[LANG];
+    document.getElementById('phase-title-text').textContent = title;
     document.getElementById('phase-desc-text').textContent  = p.desc[LANG];
     if (mbadge) mbadge.textContent = sym;
-    if (mtitle) mtitle.textContent = p.title[LANG];
+    if (mtitle) mtitle.textContent = title;
   }
 
   const curIdx = (currentPhaseNum === 0) ? -1 : phaseIndex(currentPhaseNum);
@@ -2092,12 +2094,12 @@ function showTip(el) {
 function hideTip() { if (tipEl) tipEl.style.display = 'none'; }
 
 // Map controls → tip key (shared keys for main + modal mirror buttons).
+// Play / Pause / Play-All are universal transport icons — no tooltip (logo only).
 const TOOLTIP_IDS = {
-  'btn-prev': 'tipPrev', 'btn-step': 'tipNext', 'btn-play': 'tipPlay', 'btn-play-all': 'tipPlayAll',
-  'btn-pause': 'tipPause', 'btn-color': 'tipColor', 'btn-reset': 'tipRandom', 'btn-draw': 'tipDraw',
+  'btn-prev': 'tipPrev', 'btn-step': 'tipNext', 'btn-color': 'tipColor', 'btn-reset': 'tipRandom', 'btn-draw': 'tipDraw',
   'grid-size': 'tipSizeInput', 'btn-brush-color': 'tipBrushColor', 'brush-size': 'tipBrushSize',
   'btn-clear': 'tipClear', 'btn-finish': 'tipFinish',
-  'mbtn-prev': 'tipPrev', 'mbtn-next': 'tipNext', 'mbtn-play': 'tipPlay', 'mbtn-play-all': 'tipPlayAll', 'mbtn-pause': 'tipPause',
+  'mbtn-prev': 'tipPrev', 'mbtn-next': 'tipNext',
 };
 function initTooltips() {
   tipEl = document.getElementById('tooltip');
