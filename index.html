@@ -758,6 +758,7 @@
           <button class="phase-btn" id="phase-btn-unpad" data-phase="UNPAD" style="display:none">U</button>
         </div>
         <button class="btn primary" id="btn-step" data-i18n="btnStep">Επόμενη Φάση</button>
+        <button class="btn" id="btn-play" data-i18n="btnPlay">▶ Αναπαραγωγή</button>
         <span class="spacer"></span>
       </div>
     </div>
@@ -904,6 +905,8 @@ const STRINGS = {
     frameLabel:     'Πλαίσιο:',
     jumpLabel:      'Φάση:',
     btnStep:        'Επόμενη Φάση',
+    btnPlay:        '▶ Αναπαραγωγή',
+    btnStop:        '⏸ Διακοπή',
     legendBlock:    'Όριο block',
     legendDirty:    'Βρώμικη Περιοχή',
     modalHint:      'Κλικ εκτός ή Esc για κλείσιμο',
@@ -929,6 +932,8 @@ const STRINGS = {
     frameLabel:     'Grid:',
     jumpLabel:      'Phase:',
     btnStep:        'Next Phase',
+    btnPlay:        '▶ Play',
+    btnStop:        '⏸ Stop',
     legendBlock:    'Block boundary',
     legendDirty:    'Dirty region',
     modalHint:      'Click outside or press Esc to close',
@@ -1044,6 +1049,13 @@ let opIdx           = 0;
 let currentPhaseNum = 0;
 let suppressDraw    = false;
 
+// Real-time per-phase playback (Play button) — see playCurrentPhase().
+const PLAY_MS    = 5000;   // fixed wall-clock duration of one Play, any grid size
+const MAX_FRAMES = 300;    // ~60fps × 5s ceiling; bounds frame-capture memory
+const PLAYABLE   = [1, 3, 4, 5, 6, 7, 8]; // odd-even sorting phases (2 is a permutation)
+let   playing    = false;
+let   playRAF    = 0;
+
 let drawMode        = false;   // true while the user is painting their own grid
 let drawColor       = 1;       // 1 = white, 0 = black (eraser)
 let brushSize       = 4;       // brush square side, in cells
@@ -1106,25 +1118,66 @@ async function parallelOddEven(g, n, regions) {
 }
 
 // ---------------------------------------------------------------------------
-// Run all 8 phases on g (Uint8Array view of SAB), async.
-// push(phaseNum) is called after each phase to snapshot the state.
+// Region definitions for each odd-even sorting phase — single source of truth,
+// shared by runPhases (parallel execution) and the Play feature (frame capture).
+// Returns an array of index-paths (each a list of [r,c]); null for non-sort
+// stages (phase 2 is a permutation, PAD/UNPAD are structural).
 // ---------------------------------------------------------------------------
-async function runPhases(g, n, push) {
+function phaseRegions(phase, n) {
   const bs = getBlockSize(n);
   const nb = getNumBlocks(n);
   const k  = getNumSlices(n);
   const sw = Math.floor(n / k);
 
-  function allBlocks() {
+  if (phase === 1 || phase === 3) {           // every block's snake
     const r = [];
     for (let br = 0; br < nb; br++)
       for (let bc = 0; bc < nb; bc++)
         r.push(getSnakeIndices(br*bs, bc*bs, (br+1)*bs-1, (bc+1)*bs-1));
     return r;
   }
+  if (phase === 4) {                          // every column
+    const cols = [];
+    for (let c = 0; c < n; c++) {
+      const idx = [];
+      for (let r = 0; r < n; r++) idx.push([r, c]);
+      cols.push(idx);
+    }
+    return cols;
+  }
+  if (phase === 5 || phase === 6) {           // block pairs per vertical slice
+    const regs = [];
+    const p0   = (phase === 5) ? 0 : 1;       // 5: 1+2,3+4…   6: 2+3,4+5…
+    for (let vs = 0; vs < k; vs++) {
+      const c0 = vs * sw, c1 = c0 + sw - 1;
+      for (let p = p0; p + 1 < nb; p += 2)
+        regs.push(getSnakeIndices(p*bs, c0, Math.min((p+2)*bs-1, n-1), c1));
+    }
+    return regs;
+  }
+  if (phase === 7) {                          // every row, snake direction
+    const rows = [];
+    for (let r = 0; r < n; r++) {
+      const idx = [];
+      if (r % 2 === 0) for (let c = 0; c < n; c++) idx.push([r, c]);
+      else             for (let c = n-1; c >= 0; c--) idx.push([r, c]);
+      rows.push(idx);
+    }
+    return rows;
+  }
+  if (phase === 8) return [getSnakeIndices(0, 0, n-1, n-1)]; // full snake
+  return null;                                // phase 2 / PAD / UNPAD
+}
 
-  // Phase 1
-  await parallelOddEven(g, n, allBlocks());
+// ---------------------------------------------------------------------------
+// Run all 8 phases on g (Uint8Array view of SAB), async.
+// push(phaseNum) is called after each phase to snapshot the state.
+// ---------------------------------------------------------------------------
+async function runPhases(g, n, push) {
+  const k  = getNumSlices(n);
+  const sw = Math.floor(n / k);
+
+  await parallelOddEven(g, n, phaseRegions(1, n));
   push(1);
 
   // Phase 2 — pure column permutation, no compare-swap, stays on main thread
@@ -1139,61 +1192,22 @@ async function runPhases(g, n, push) {
   }
   push(2);
 
-  // Phase 3
-  await parallelOddEven(g, n, allBlocks());
+  await parallelOddEven(g, n, phaseRegions(3, n));
   push(3);
 
-  // Phase 4 — columns
-  {
-    const cols = [];
-    for (let c = 0; c < n; c++) {
-      const idx = [];
-      for (let r = 0; r < n; r++) idx.push([r, c]);
-      cols.push(idx);
-    }
-    await parallelOddEven(g, n, cols);
-  }
+  await parallelOddEven(g, n, phaseRegions(4, n));
   push(4);
 
-  // Phase 5 — block pairs 1+2, 3+4, ...
-  {
-    const regs = [];
-    for (let vs = 0; vs < k; vs++) {
-      const c0 = vs * sw, c1 = c0 + sw - 1;
-      for (let p = 0; p + 1 < nb; p += 2)
-        regs.push(getSnakeIndices(p*bs, c0, Math.min((p+2)*bs-1, n-1), c1));
-    }
-    if (regs.length) await parallelOddEven(g, n, regs);
-  }
+  { const regs = phaseRegions(5, n); if (regs.length) await parallelOddEven(g, n, regs); }
   push(5);
 
-  // Phase 6 — block pairs 2+3, 4+5, ...
-  {
-    const regs = [];
-    for (let vs = 0; vs < k; vs++) {
-      const c0 = vs * sw, c1 = c0 + sw - 1;
-      for (let p = 1; p + 1 < nb; p += 2)
-        regs.push(getSnakeIndices(p*bs, c0, Math.min((p+2)*bs-1, n-1), c1));
-    }
-    if (regs.length) await parallelOddEven(g, n, regs);
-  }
+  { const regs = phaseRegions(6, n); if (regs.length) await parallelOddEven(g, n, regs); }
   push(6);
 
-  // Phase 7 — rows
-  {
-    const rows = [];
-    for (let r = 0; r < n; r++) {
-      const idx = [];
-      if (r % 2 === 0) for (let c = 0; c < n; c++) idx.push([r, c]);
-      else             for (let c = n-1; c >= 0; c--) idx.push([r, c]);
-      rows.push(idx);
-    }
-    await parallelOddEven(g, n, rows);
-  }
+  await parallelOddEven(g, n, phaseRegions(7, n));
   push(7);
 
-  // Phase 8 — full snake
-  await parallelOddEven(g, n, [getSnakeIndices(0, 0, n-1, n-1)]);
+  await parallelOddEven(g, n, phaseRegions(8, n));
   push(8);
 }
 
@@ -1261,6 +1275,7 @@ async function computeOps() {
   document.getElementById('btn-step').disabled  = true;
   document.getElementById('btn-reset').disabled = true;
   document.getElementById('btn-draw').disabled  = true;
+  document.getElementById('btn-play').disabled  = true;
   document.querySelectorAll('.phase-btn, .size-btn').forEach(b => b.disabled = true);
 
   const badge = document.getElementById('phase-badge');
@@ -1309,6 +1324,7 @@ function startDraw() {
   canvas.style.touchAction = 'none';   // finger-drag paints instead of scrolling
   document.getElementById('btn-step').disabled = true;
   document.getElementById('btn-draw').disabled = true;
+  document.getElementById('btn-play').disabled = true;
   document.querySelectorAll('.phase-btn').forEach(b => b.disabled = true);
 
   const badge = document.getElementById('phase-badge');
@@ -1414,6 +1430,130 @@ function jumpToPhase(targetPhase) {
   }
   suppressDraw = false;
   updateUI(); updatePhaseButtons(); drawGrid();
+}
+
+// ---------------------------------------------------------------------------
+// Real-time Play — animate the CURRENT phase sorting over a fixed PLAY_MS (5s),
+// regardless of grid size. Press Play → reset to the unsorted state of this
+// stage (end of the previous phase) → animate each compare-swap pass → settle
+// on the phase end.
+// ---------------------------------------------------------------------------
+
+// Serial odd-even transposition — a faithful replay of parallelOddEven's pass
+// order and 2-no-swap early exit, on a plain array. onPass() fires after each
+// completed pass. Pairs within a pass are disjoint, so this reproduces the same
+// intermediate states as the parallel (worker) run.
+function oddEvenCapture(g, n, regions, onPass) {
+  if (!regions || !regions.length) return;
+  const maxLen = Math.max(...regions.map(r => r.length));
+  let noSwap = 0;
+  for (let t = 0; t < maxLen && noSwap < 2; t++) {
+    const start = t % 2;
+    let swaps = 0;
+    for (const idx of regions)
+      for (let j = start; j + 1 < idx.length; j += 2) {
+        const a = idx[j][0] * n + idx[j][1];
+        const b = idx[j+1][0] * n + idx[j+1][1];
+        if (g[a] > g[b]) { const tmp = g[a]; g[a] = g[b]; g[b] = tmp; swaps++; }
+      }
+    noSwap = swaps > 0 ? 0 : noSwap + 1;
+    onPass();
+  }
+}
+
+// Capture intermediate frames of one sorting phase. `start` is the n×n end state
+// of the previous phase. Returns Uint8Array snapshots: [0]=start … [last]=end.
+// Bounded to ~MAX_FRAMES by progressive decimation, so memory stays small even
+// at n=256 where a block sort can run thousands of passes.
+function capturePhaseFrames(start, n, phase) {
+  const regions = phaseRegions(phase, n);
+  const g       = start.slice();
+  const frames  = [g.slice()];            // frame 0 = unsorted (previous phase end)
+  let stride = 1, since = 0;
+
+  oddEvenCapture(g, n, regions, () => {
+    if (++since >= stride) { frames.push(g.slice()); since = 0; }
+    if (frames.length >= MAX_FRAMES * 2) {           // halve: keep even indices
+      let w = 0;
+      for (let i = 0; i < frames.length; i += 2) frames[w++] = frames[i];
+      frames.length = w;
+      stride *= 2;
+    }
+  });
+
+  // Guarantee the final frame is exactly the phase end.
+  const last = frames[frames.length - 1];
+  let same = last.length === g.length;
+  if (same) for (let i = 0; i < g.length; i++) if (last[i] !== g[i]) { same = false; break; }
+  if (!same) frames.push(g.slice());
+  return frames;
+}
+
+// The "unsorted state of this stage" = end state of the previous op.
+function phaseStartGrid(phase) {
+  const j = ops.findIndex(o => o.phaseNum === phase);
+  if (j > 0 && ops[j-1].gridSnapshot) return ops[j-1].gridSnapshot;
+  return new Uint8Array(logicalGrid);     // phase 1, no padding → initial grid
+}
+
+function setControlsForPlay(on) {
+  document.getElementById('btn-reset').disabled = on;
+  document.getElementById('btn-draw').disabled  = on;
+  document.getElementById('grid-size').disabled = on;
+  document.querySelectorAll('.phase-btn, .size-btn').forEach(b => b.disabled = on);
+  document.getElementById('btn-step').disabled  =
+    on || opIdx >= ops.length || (ops[opIdx] && ops[opIdx].type === 'done');
+}
+
+function updatePlayButton() {
+  const pb = document.getElementById('btn-play');
+  if (!pb) return;
+  pb.textContent = playing ? t('btnStop') : t('btnPlay');
+  pb.disabled    = !playing && (!ops.length || !PLAYABLE.includes(currentPhaseNum));
+}
+
+function finishPlayback(endSnap) {
+  playing = false;
+  if (endSnap) grid = endSnap.slice();    // settle exactly on the phase end
+  setControlsForPlay(false);
+  updateUI(); updatePhaseButtons(); drawGrid();
+}
+
+function stopPlayback() {
+  if (!playing) return;
+  cancelAnimationFrame(playRAF);
+  const endOp = ops.find(o => o.phaseNum === currentPhaseNum);
+  finishPlayback(endOp ? endOp.gridSnapshot : null);
+}
+
+// Animate the currently selected phase. Bounded frames played over exactly
+// PLAY_MS via a time-driven rAF loop → 5s wall-clock for any grid size.
+function playCurrentPhase() {
+  if (playing) { stopPlayback(); return; }
+  const phase = currentPhaseNum;
+  if (!ops.length || !PLAYABLE.includes(phase)) return;
+
+  const endOp = ops.find(o => o.phaseNum === phase);
+  if (!endOp) return;
+  const n      = endOp.displayN;
+  const frames = capturePhaseFrames(phaseStartGrid(phase), n, phase);
+  if (frames.length < 2) return;          // no-op phase (e.g. empty regions)
+
+  playing = true;
+  setControlsForPlay(true);
+  updatePlayButton();
+
+  N = n; currentPhaseNum = phase;
+  const lastIdx = frames.length - 1;
+  const t0      = performance.now();
+
+  (function tick(now) {
+    const p = Math.min(1, (now - t0) / PLAY_MS);
+    grid = frames[Math.round(p * lastIdx)];
+    drawGrid();
+    if (p < 1) playRAF = requestAnimationFrame(tick);
+    else       finishPlayback(endOp.gridSnapshot);
+  })(performance.now());
 }
 
 // ---------------------------------------------------------------------------
@@ -1618,6 +1758,7 @@ function updateUI() {
 
   updateSizeButtons();
   updateModeButtons();
+  updatePlayButton();
 }
 
 function updatePhaseButtons() {
@@ -1668,6 +1809,7 @@ function applySize(n) {
 // Event listeners
 // ---------------------------------------------------------------------------
 document.getElementById('btn-step') .addEventListener('click', stepForward);
+document.getElementById('btn-play') .addEventListener('click', playCurrentPhase);
 document.getElementById('btn-reset').addEventListener('click', () => { exitDrawMode(); initGrid(); });
 document.getElementById('grid-size').addEventListener('change', () => { if (drawMode) startDraw(); else initGrid(); });
 
