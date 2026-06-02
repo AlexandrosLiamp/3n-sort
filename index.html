@@ -759,6 +759,7 @@
         </div>
         <button class="btn primary" id="btn-step" data-i18n="btnStep">Επόμενη Φάση</button>
         <button class="btn" id="btn-play" data-i18n="btnPlay">▶ Αναπαραγωγή</button>
+        <button class="btn" id="btn-play-all" data-i18n="btnPlayAll">▶▶ Όλα</button>
         <span class="spacer"></span>
       </div>
     </div>
@@ -907,6 +908,7 @@ const STRINGS = {
     btnStep:        'Επόμενη Φάση',
     btnPlay:        '▶ Αναπαραγωγή',
     btnStop:        '⏸ Διακοπή',
+    btnPlayAll:     '▶▶ Όλα',
     legendBlock:    'Όριο block',
     legendDirty:    'Βρώμικη Περιοχή',
     modalHint:      'Κλικ εκτός ή Esc για κλείσιμο',
@@ -934,6 +936,7 @@ const STRINGS = {
     btnStep:        'Next Phase',
     btnPlay:        '▶ Play',
     btnStop:        '⏸ Stop',
+    btnPlayAll:     '▶▶ All',
     legendBlock:    'Block boundary',
     legendDirty:    'Dirty region',
     modalHint:      'Click outside or press Esc to close',
@@ -1050,11 +1053,19 @@ let currentPhaseNum = 0;
 let suppressDraw    = false;
 
 // Real-time per-phase playback (Play button) — see playCurrentPhase().
-const PLAY_MS    = 5000;   // fixed wall-clock duration of one Play, any grid size
-const MAX_FRAMES = 300;    // ~60fps × 5s ceiling; bounds frame-capture memory
-const PLAYABLE   = [1, 3, 4, 5, 6, 7, 8]; // odd-even sorting phases (2 is a permutation)
-let   playing    = false;
-let   playRAF    = 0;
+const PLAY_MS       = 5000;   // default per-phase playback duration
+const PLAY_MS_SHORT = 3000;   // phases 6, 7, 8
+const MAX_FRAMES    = 300;    // ~60fps × 5s ceiling; bounds frame-capture memory
+const PLAYABLE      = [1, 3, 4, 5, 6, 7, 8]; // odd-even sorting phases (2 is a permutation)
+function playMsFor(phase) { return (phase === 6 || phase === 7 || phase === 8) ? PLAY_MS_SHORT : PLAY_MS; }
+let   playing       = false;
+let   playRAF       = 0;
+let   playCancel    = false;  // set by Stop; observed by the animation loop
+let   playAllActive = false;  // true while Play-All is running
+let   modalOpen     = false;  // zoom modal open → keep repainting it during playback
+
+// Vertical-slice colours for the Phase 2 unshuffle visualisation (k ≤ 4).
+const SLICE_COLORS  = ['#e6c34d', '#46c7b0', '#b07be0', '#e87da0'];
 
 let drawMode        = false;   // true while the user is painting their own grid
 let drawColor       = 1;       // 1 = white, 0 = black (eraser)
@@ -1276,6 +1287,7 @@ async function computeOps() {
   document.getElementById('btn-reset').disabled = true;
   document.getElementById('btn-draw').disabled  = true;
   document.getElementById('btn-play').disabled  = true;
+  document.getElementById('btn-play-all').disabled = true;
   document.querySelectorAll('.phase-btn, .size-btn').forEach(b => b.disabled = true);
 
   const badge = document.getElementById('phase-badge');
@@ -1325,6 +1337,7 @@ function startDraw() {
   document.getElementById('btn-step').disabled = true;
   document.getElementById('btn-draw').disabled = true;
   document.getElementById('btn-play').disabled = true;
+  document.getElementById('btn-play-all').disabled = true;
   document.querySelectorAll('.phase-btn').forEach(b => b.disabled = true);
 
   const badge = document.getElementById('phase-badge');
@@ -1505,55 +1518,119 @@ function setControlsForPlay(on) {
     on || opIdx >= ops.length || (ops[opIdx] && ops[opIdx].type === 'done');
 }
 
+// Play (single phase) and Play-All share one `playing` state. The button that
+// started playback turns into Stop; the other is disabled meanwhile.
 function updatePlayButton() {
   const pb = document.getElementById('btn-play');
-  if (!pb) return;
-  pb.textContent = playing ? t('btnStop') : t('btnPlay');
-  pb.disabled    = !playing && (!ops.length || !PLAYABLE.includes(currentPhaseNum));
+  const pa = document.getElementById('btn-play-all');
+  if (!pb || !pa) return;
+  if (playing) {
+    pb.textContent = playAllActive ? t('btnPlay') : t('btnStop');
+    pa.textContent = playAllActive ? t('btnStop') : t('btnPlayAll');
+    pb.disabled    = playAllActive;
+    pa.disabled    = !playAllActive;
+  } else {
+    pb.textContent = t('btnPlay');
+    pa.textContent = t('btnPlayAll');
+    pb.disabled    = !ops.length || !PLAYABLE.includes(currentPhaseNum);
+    pa.disabled    = !ops.length;
+  }
 }
 
-function finishPlayback(endSnap) {
-  playing = false;
-  if (endSnap) grid = endSnap.slice();    // settle exactly on the phase end
+// Render the current grid to the inline canvas and, if open, the zoom modal —
+// so clicking to zoom never interrupts playback.
+function renderPlay() {
+  drawGrid();
+  if (modalOpen) sizeAndPaintModal();
+}
+
+function startPlayback(isAll) {
+  playing = true; playCancel = false; playAllActive = isAll;
+  setControlsForPlay(true); updatePlayButton();
+}
+
+function endPlayback() {
+  playing = false; playCancel = false; playAllActive = false;
   setControlsForPlay(false);
   updateUI(); updatePhaseButtons(); drawGrid();
+  if (modalOpen) sizeAndPaintModal();
 }
 
-function stopPlayback() {
-  if (!playing) return;
-  cancelAnimationFrame(playRAF);
-  const endOp = ops.find(o => o.phaseNum === currentPhaseNum);
-  finishPlayback(endOp ? endOp.gridSnapshot : null);
+// Stop just flags a cancel; the running animation loop observes it on its next
+// frame, resolves, and the owning play function settles the final state.
+function stopPlayback() { if (playing) playCancel = true; }
+
+// Settle the displayed state on a stage's end snapshot (used after Stop).
+function settleTo(stage) {
+  const op = ops.find(o => o.phaseNum === stage);
+  if (!op) return;
+  N = op.displayN; grid = op.gridSnapshot.slice(); currentPhaseNum = stage;
+  opIdx = ops.indexOf(op) + 1;
 }
 
-// Animate the currently selected phase. Bounded frames played over exactly
-// PLAY_MS via a time-driven rAF loop → 5s wall-clock for any grid size.
-function playCurrentPhase() {
+// Animate one stage; resolves when it finishes or is cancelled. Sorting phases
+// play their captured frames over playMsFor(); non-sort stages (PAD / phase 2 /
+// UNPAD) show their end state and hold briefly — phase 2 longer, to read the
+// colour-coded unshuffle.
+function animateStage(stage) {
+  return new Promise(resolve => {
+    const endOp = ops.find(o => o.phaseNum === stage);
+    if (!endOp) { resolve(); return; }
+    const n = endOp.displayN;
+    N = n; currentPhaseNum = stage;
+
+    if (PLAYABLE.includes(stage)) {
+      const frames = capturePhaseFrames(phaseStartGrid(stage), n, stage);
+      if (frames.length < 2) { grid = endOp.gridSnapshot.slice(); renderPlay(); resolve(); return; }
+      const dur = playMsFor(stage), lastIdx = frames.length - 1, t0 = performance.now();
+      (function tick(now) {
+        if (playCancel) { resolve(); return; }
+        const p = Math.min(1, (now - t0) / dur);
+        grid = frames[Math.round(p * lastIdx)];
+        renderPlay();
+        if (p < 1) playRAF = requestAnimationFrame(tick);
+        else { grid = endOp.gridSnapshot.slice(); renderPlay(); resolve(); }
+      })(performance.now());
+    } else {
+      grid = endOp.gridSnapshot.slice();
+      renderPlay();
+      const hold = (stage === 2) ? 1500 : 700, t0 = performance.now();
+      (function wait(now) {
+        if (playCancel) { resolve(); return; }
+        if (now - t0 < hold) playRAF = requestAnimationFrame(wait);
+        else resolve();
+      })(performance.now());
+    }
+  });
+}
+
+// Play the currently selected phase from the previous phase's end state.
+async function playCurrentPhase() {
   if (playing) { stopPlayback(); return; }
   const phase = currentPhaseNum;
   if (!ops.length || !PLAYABLE.includes(phase)) return;
+  startPlayback(false);
+  await animateStage(phase);
+  settleTo(playCancel ? currentPhaseNum : phase);
+  endPlayback();
+}
 
-  const endOp = ops.find(o => o.phaseNum === phase);
-  if (!endOp) return;
-  const n      = endOp.displayN;
-  const frames = capturePhaseFrames(phaseStartGrid(phase), n, phase);
-  if (frames.length < 2) return;          // no-op phase (e.g. empty regions)
-
-  playing = true;
-  setControlsForPlay(true);
-  updatePlayButton();
-
-  N = n; currentPhaseNum = phase;
-  const lastIdx = frames.length - 1;
-  const t0      = performance.now();
-
-  (function tick(now) {
-    const p = Math.min(1, (now - t0) / PLAY_MS);
-    grid = frames[Math.round(p * lastIdx)];
-    drawGrid();
-    if (p < 1) playRAF = requestAnimationFrame(tick);
-    else       finishPlayback(endOp.gridSnapshot);
-  })(performance.now());
+// Play the entire sequence, stage by stage, start to finish.
+async function playAll() {
+  if (playing) { stopPlayback(); return; }
+  if (!ops.length) return;
+  startPlayback(true);
+  for (const stage of getPhaseOrder()) {
+    if (playCancel) break;
+    await animateStage(stage);
+  }
+  if (playCancel) {
+    settleTo(currentPhaseNum);
+  } else {
+    const di = ops.findIndex(o => o.type === 'done');
+    opIdx = di < 0 ? ops.length : di;       // rest at the fully-sorted end
+  }
+  endPlayback();
 }
 
 // ---------------------------------------------------------------------------
@@ -1610,6 +1687,21 @@ function computeDirtyCells(g, n, phase) {
   return dirty;
 }
 
+// Per-column slice colour for the Phase 1/2 unshuffle visualisation, or null
+// when colouring is off. Colour follows the column's ORIGINAL vertical slice:
+//   phase 1 (pre-unshuffle):  slice = floor(col / sw)              → contiguous bands
+//   phase 2 (post-unshuffle): origCol = (col%sw)*k + floor(col/sw) → dispersed
+function sliceColumnColors(n, phaseNum) {
+  if (phaseNum !== 1 && phaseNum !== 2) return null;
+  const k = getNumSlices(n), sw = Math.floor(n / k);
+  const out = new Array(n);
+  for (let col = 0; col < n; col++) {
+    const origCol = (phaseNum === 2) ? (col % sw) * k + Math.floor(col / sw) : col;
+    out[col] = SLICE_COLORS[Math.floor(origCol / sw) % SLICE_COLORS.length];
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // Paint the grid onto a 2D context at a given cell size.
 // Shared by the inline canvas (drawGrid) and the expand modal (openGridModal).
@@ -1620,9 +1712,15 @@ function paintGrid(c, g, n, cell, phaseNum, cellLines) {
   c.imageSmoothingEnabled = false;
   c.clearRect(0, 0, size, size);
 
+  // Phase 1/2 unshuffle visualisation: tint each white cell by the vertical
+  // slice its column ORIGINATED from. Phase 1 shows k contiguous bands; the
+  // unshuffle (phase 2) disperses them round-robin, making it visible.
+  const colColors = sliceColumnColors(n, phaseNum);
+
   for (let r = 0; r < n; r++)
     for (let col = 0; col < n; col++) {
-      c.fillStyle = g[r * n + col] === 1 ? '#e8eaf0' : '#0b0e14';
+      if (g[r * n + col] === 1) c.fillStyle = colColors ? colColors[col] : '#e8eaf0';
+      else                      c.fillStyle = '#0b0e14';
       c.fillRect(col * cell, r * cell, cell, cell);
     }
 
@@ -1704,25 +1802,35 @@ function drawGrid() {
 const gridModal   = document.getElementById('grid-modal');
 const modalCanvas = document.getElementById('modal-canvas');
 
-function openGridModal() {
-  if (drawMode || !grid) return;
+// Size the modal canvas to the current N and paint the current grid into it.
+// Recomputes cell size each call so it adapts if N changes mid Play-All, and is
+// re-invoked every animation frame so zooming never pauses playback.
+function sizeAndPaintModal() {
+  if (!grid) return;
   const maxFit = Math.min(window.innerWidth, window.innerHeight) * 0.9;
   const cell   = Math.max(6, Math.floor(maxFit / N));
   const size   = cell * N;
   const dpr    = window.devicePixelRatio || 1;
-  const mctx   = modalCanvas.getContext('2d');
-
-  modalCanvas.width        = size * dpr;
-  modalCanvas.height       = size * dpr;
-  modalCanvas.style.width  = size + 'px';
-  modalCanvas.style.height = size + 'px';
+  if (modalCanvas.width !== size * dpr || modalCanvas.height !== size * dpr) {
+    modalCanvas.width        = size * dpr;
+    modalCanvas.height       = size * dpr;
+    modalCanvas.style.width  = size + 'px';
+    modalCanvas.style.height = size + 'px';
+  }
+  const mctx = modalCanvas.getContext('2d');
   mctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   paintGrid(mctx, grid, N, cell, currentPhaseNum, true);
+}
 
+function openGridModal() {
+  if (drawMode || !grid) return;
+  modalOpen = true;
+  sizeAndPaintModal();
   gridModal.classList.add('open');
 }
 
 function closeGridModal() {
+  modalOpen = false;
   gridModal.classList.remove('open');
 }
 
@@ -1810,6 +1918,7 @@ function applySize(n) {
 // ---------------------------------------------------------------------------
 document.getElementById('btn-step') .addEventListener('click', stepForward);
 document.getElementById('btn-play') .addEventListener('click', playCurrentPhase);
+document.getElementById('btn-play-all').addEventListener('click', playAll);
 document.getElementById('btn-reset').addEventListener('click', () => { exitDrawMode(); initGrid(); });
 document.getElementById('grid-size').addEventListener('change', () => { if (drawMode) startDraw(); else initGrid(); });
 
