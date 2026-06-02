@@ -604,6 +604,35 @@
     pointer-events: none;
   }
 
+  .modal-phase {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 51; display: flex; align-items: center; gap: 10px;
+    max-width: 80vw; padding: 7px 13px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border2);
+    font-size: 13px; color: var(--text);
+  }
+  .modal-phase .mp-badge {
+    width: 26px; height: 26px; flex: none; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-weight: 600;
+    background: var(--surface2); border: 1px solid var(--border2);
+  }
+  .modal-phase .mp-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .modal-controls {
+    position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%);
+    z-index: 51; display: flex; gap: 8px;
+  }
+  .modal-controls .mbtn {
+    min-width: 46px; height: 40px; padding: 0 12px;
+    font-size: 16px; line-height: 1; border-radius: 10px;
+    border: 1px solid var(--border2); background: var(--surface);
+    color: var(--text); cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  }
+  .modal-controls .mbtn:hover:not(:disabled) { background: var(--surface2); border-color: var(--border3); }
+  .modal-controls .mbtn:disabled { opacity: 0.4; cursor: default; }
+
   /* ===================  DRAW TOOLBAR  =================== */
   .draw-toolbar {
     display: flex;
@@ -757,9 +786,11 @@
           <button class="phase-btn" data-phase="8">8</button>
           <button class="phase-btn" id="phase-btn-unpad" data-phase="UNPAD" style="display:none">U</button>
         </div>
+        <button class="btn" id="btn-prev" data-i18n="btnPrev">‹ Προηγούμενη</button>
         <button class="btn primary" id="btn-step" data-i18n="btnStep">Επόμενη Φάση</button>
         <button class="btn" id="btn-play" data-i18n="btnPlay">▶ Αναπαραγωγή</button>
         <button class="btn" id="btn-play-all" data-i18n="btnPlayAll">▶▶ Όλα</button>
+        <button class="btn" id="btn-pause" data-i18n="btnPause">⏸ Παύση</button>
         <span class="spacer"></span>
       </div>
     </div>
@@ -820,7 +851,18 @@
 
 <div class="grid-modal" id="grid-modal">
   <button class="grid-modal-close" id="grid-modal-close" aria-label="Close">&times;</button>
+  <div class="modal-phase" id="modal-phase">
+    <span class="mp-badge" id="mp-badge">&mdash;</span>
+    <span class="mp-title" id="mp-title"></span>
+  </div>
   <canvas id="modal-canvas"></canvas>
+  <div class="modal-controls" id="modal-controls">
+    <button class="mbtn" id="mbtn-prev">&lsaquo;</button>
+    <button class="mbtn" id="mbtn-next">&rsaquo;</button>
+    <button class="mbtn" id="mbtn-play">&#9654;</button>
+    <button class="mbtn" id="mbtn-play-all">&#9654;&#9654;</button>
+    <button class="mbtn" id="mbtn-pause">&#9208;</button>
+  </div>
   <div class="grid-modal-hint" data-i18n="modalHint">Κλικ εκτός ή Esc για κλείσιμο</div>
 </div>
 
@@ -909,6 +951,9 @@ const STRINGS = {
     btnPlay:        '▶ Αναπαραγωγή',
     btnStop:        '⏸ Διακοπή',
     btnPlayAll:     '▶▶ Όλα',
+    btnPrev:        '‹ Προηγούμενη',
+    btnPause:       '⏸ Παύση',
+    btnResume:      '▶ Συνέχεια',
     legendBlock:    'Όριο block',
     legendDirty:    'Βρώμικη Περιοχή',
     modalHint:      'Κλικ εκτός ή Esc για κλείσιμο',
@@ -937,6 +982,9 @@ const STRINGS = {
     btnPlay:        '▶ Play',
     btnStop:        '⏸ Stop',
     btnPlayAll:     '▶▶ All',
+    btnPrev:        '‹ Previous',
+    btnPause:       '⏸ Pause',
+    btnResume:      '▶ Resume',
     legendBlock:    'Block boundary',
     legendDirty:    'Dirty region',
     modalHint:      'Click outside or press Esc to close',
@@ -1059,9 +1107,10 @@ const MAX_FRAMES    = 300;    // ~60fps × 5s ceiling; bounds frame-capture memo
 const PLAYABLE      = [1, 3, 4, 5, 6, 7, 8]; // odd-even sorting phases (2 is a permutation)
 function playMsFor(phase) { return (phase === 6 || phase === 7 || phase === 8) ? PLAY_MS_SHORT : PLAY_MS; }
 let   playing       = false;
+let   paused        = false;  // playback frozen by Pause
 let   playRAF       = 0;
-let   playCancel    = false;  // set by Stop; observed by the animation loop
-let   playAllActive = false;  // true while Play-All is running
+let   playGen       = 0;      // playback generation; bumping it invalidates a running session
+let   computing     = false;  // buildAllOps in progress
 let   modalOpen     = false;  // zoom modal open → keep repainting it during playback
 
 // Vertical-slice colours for the Phase 2 unshuffle visualisation (k ≤ 4).
@@ -1283,12 +1332,10 @@ async function initGrid() {
 // Build all phase ops from the current logicalGrid, showing the computing state.
 // Shared by initGrid (random) and finishDraw (hand-painted).
 async function computeOps() {
-  document.getElementById('btn-step').disabled  = true;
-  document.getElementById('btn-reset').disabled = true;
-  document.getElementById('btn-draw').disabled  = true;
-  document.getElementById('btn-play').disabled  = true;
-  document.getElementById('btn-play-all').disabled = true;
-  document.querySelectorAll('.phase-btn, .size-btn').forEach(b => b.disabled = true);
+  cancelPlayback();
+  computing = true;
+  setEditingDisabled(true);
+  updateControls();
 
   const badge = document.getElementById('phase-badge');
   badge.className   = 'phase-badge computing';
@@ -1301,10 +1348,8 @@ async function computeOps() {
   ops   = await buildAllOps();
   opIdx = 0;
 
-  document.getElementById('btn-step').disabled  = false;
-  document.getElementById('btn-reset').disabled = false;
-  document.getElementById('btn-draw').disabled  = false;
-  document.querySelectorAll('.size-btn').forEach(b => b.disabled = false);
+  computing = false;
+  setEditingDisabled(false);
 
   updateUI();
   updatePhaseButtons();
@@ -1334,11 +1379,9 @@ function startDraw() {
   document.getElementById('draw-toolbar').style.display = '';
   canvas.style.cursor = 'crosshair';
   canvas.style.touchAction = 'none';   // finger-drag paints instead of scrolling
-  document.getElementById('btn-step').disabled = true;
   document.getElementById('btn-draw').disabled = true;
-  document.getElementById('btn-play').disabled = true;
-  document.getElementById('btn-play-all').disabled = true;
   document.querySelectorAll('.phase-btn').forEach(b => b.disabled = true);
+  updateControls();   // drawMode → play/nav bar disabled
 
   const badge = document.getElementById('phase-badge');
   badge.className   = 'phase-badge';
@@ -1509,32 +1552,49 @@ function phaseStartGrid(phase) {
   return new Uint8Array(logicalGrid);     // phase 1, no padding → initial grid
 }
 
-function setControlsForPlay(on) {
+// Disable the editing controls (grid source / size / phase jumps) during a play
+// session; the play/nav bar itself is handled by updateControls().
+function setEditingDisabled(on) {
   document.getElementById('btn-reset').disabled = on;
   document.getElementById('btn-draw').disabled  = on;
   document.getElementById('grid-size').disabled = on;
-  document.querySelectorAll('.phase-btn, .size-btn').forEach(b => b.disabled = on);
-  document.getElementById('btn-step').disabled  =
-    on || opIdx >= ops.length || (ops[opIdx] && ops[opIdx].type === 'done');
+  document.querySelectorAll('.size-btn, .phase-btn').forEach(b => b.disabled = on);
 }
 
-// Play (single phase) and Play-All share one `playing` state. The button that
-// started playback turns into Stop; the other is disabled meanwhile.
-function updatePlayButton() {
-  const pb = document.getElementById('btn-play');
-  const pa = document.getElementById('btn-play-all');
-  if (!pb || !pa) return;
-  if (playing) {
-    pb.textContent = playAllActive ? t('btnPlay') : t('btnStop');
-    pa.textContent = playAllActive ? t('btnStop') : t('btnPlayAll');
-    pb.disabled    = playAllActive;
-    pa.disabled    = !playAllActive;
-  } else {
-    pb.textContent = t('btnPlay');
-    pa.textContent = t('btnPlayAll');
-    pb.disabled    = !ops.length || !PLAYABLE.includes(currentPhaseNum);
-    pa.disabled    = !ops.length;
-  }
+// Each logical control maps to its main button + its modal mirror.
+const CTRL_IDS = {
+  prev:    ['btn-prev', 'mbtn-prev'],
+  next:    ['btn-step', 'mbtn-next'],
+  play:    ['btn-play', 'mbtn-play'],
+  playall: ['btn-play-all', 'mbtn-play-all'],
+  pause:   ['btn-pause', 'mbtn-pause'],
+};
+function setCtl(name, disabled) {
+  for (const id of CTRL_IDS[name]) { const e = document.getElementById(id); if (e) e.disabled = disabled; }
+}
+
+// Single source of truth for the nav / playback bar (main + modal).
+// prev/next are usable when idle OR paused; play/play-all only when idle;
+// pause only while a session is running (and toggles its Pause/Resume label).
+function updateControls() {
+  const locked  = computing || drawMode;
+  const idle    = !playing;
+  const navOK   = !locked && (idle || paused);
+  const atStart = currentPhaseNum === 0;
+  const atEnd   = opIdx >= ops.length || (ops[opIdx] && ops[opIdx].type === 'done');
+  const canPlay = !locked && !!ops.length && PLAYABLE.includes(currentPhaseNum);
+
+  setCtl('prev',    !navOK || atStart);
+  setCtl('next',    !navOK || atEnd);
+  setCtl('play',    locked || !idle || !canPlay);
+  setCtl('playall', locked || !idle || !ops.length);
+  setCtl('pause',   locked || idle);
+
+  const bp = document.getElementById('btn-pause');  if (bp) bp.textContent = paused ? t('btnResume') : t('btnPause');
+  const mp = document.getElementById('mbtn-pause'); if (mp) mp.textContent = paused ? '▶' : '⏸';
+  const tip = { 'mbtn-prev': t('btnPrev'), 'mbtn-next': t('btnStep'), 'mbtn-play': t('btnPlay'),
+                'mbtn-play-all': t('btnPlayAll'), 'mbtn-pause': paused ? t('btnResume') : t('btnPause') };
+  for (const id in tip) { const e = document.getElementById(id); if (e) e.title = tip[id]; }
 }
 
 // Render the current grid to the inline canvas and, if open, the zoom modal —
@@ -1544,23 +1604,42 @@ function renderPlay() {
   if (modalOpen) sizeAndPaintModal();
 }
 
-function startPlayback(isAll) {
-  playing = true; playCancel = false; playAllActive = isAll;
-  setControlsForPlay(true); updatePlayButton();
+// Update the phase badge / title / description / progress dots for the current
+// phase, on the main panel AND the modal label. Called every stage during
+// playback so the user always sees which phase is running.
+function renderPhaseInfo() {
+  const p      = PHASES.find(ph => ph.num === currentPhaseNum);
+  const badge  = document.getElementById('phase-badge');
+  const mbadge = document.getElementById('mp-badge');
+  const mtitle = document.getElementById('mp-title');
+
+  if (!p) {
+    badge.textContent = '—'; badge.className = 'phase-badge';
+    document.getElementById('phase-title-text').textContent = t('ready');
+    document.getElementById('phase-desc-text').textContent  = isPaddingNeeded()
+      ? t('readyDescPad')(logicalN, nextValidN(logicalN))
+      : t('readyDesc');
+    if (mbadge) mbadge.textContent = '—';
+    if (mtitle) mtitle.textContent = t('ready');
+  } else {
+    const sym = (p.num === 'PAD') ? 'P' : (p.num === 'UNPAD') ? 'U' : p.num;
+    badge.textContent = sym; badge.className = 'phase-badge active';
+    document.getElementById('phase-title-text').textContent = p.title[LANG];
+    document.getElementById('phase-desc-text').textContent  = p.desc[LANG];
+    if (mbadge) mbadge.textContent = sym;
+    if (mtitle) mtitle.textContent = p.title[LANG];
+  }
+
+  const curIdx = (currentPhaseNum === 0) ? -1 : phaseIndex(currentPhaseNum);
+  for (let i = 1; i <= 8; i++) {
+    const dot = document.getElementById(`pdot-${i}`);
+    dot.className = 'phase-dot';
+    if (phaseIndex(i) < curIdx)     dot.classList.add('done');
+    else if (i === currentPhaseNum) dot.classList.add('current');
+  }
 }
 
-function endPlayback() {
-  playing = false; playCancel = false; playAllActive = false;
-  setControlsForPlay(false);
-  updateUI(); updatePhaseButtons(); drawGrid();
-  if (modalOpen) sizeAndPaintModal();
-}
-
-// Stop just flags a cancel; the running animation loop observes it on its next
-// frame, resolves, and the owning play function settles the final state.
-function stopPlayback() { if (playing) playCancel = true; }
-
-// Settle the displayed state on a stage's end snapshot (used after Stop).
+// Settle the displayed state on a stage's end snapshot.
 function settleTo(stage) {
   const op = ops.find(o => o.phaseNum === stage);
   if (!op) return;
@@ -1568,69 +1647,110 @@ function settleTo(stage) {
   opIdx = ops.indexOf(op) + 1;
 }
 
-// Animate one stage; resolves when it finishes or is cancelled. Sorting phases
-// play their captured frames over playMsFor(); non-sort stages (PAD / phase 2 /
-// UNPAD) show their end state and hold briefly — phase 2 longer, to read the
-// colour-coded unshuffle.
-function animateStage(stage) {
+// Begin a play session; returns its generation token.
+function startPlayback() {
+  playGen++;
+  playing = true; paused = false;
+  setEditingDisabled(true);
+  updateControls();
+  return playGen;
+}
+
+function endPlayback() {
+  playing = false; paused = false;
+  setEditingDisabled(false);
+  updateUI(); updatePhaseButtons(); drawGrid();
+  if (modalOpen) sizeAndPaintModal();
+}
+
+// Invalidate any running session without settling (the caller sets next state).
+function cancelPlayback() { playGen++; playing = false; paused = false; }
+
+// Pause / resume the running session.
+function togglePause() {
+  if (!playing) return;
+  paused = !paused;
+  updateControls();
+}
+
+// Animate one stage; resolves when it finishes or its generation is superseded.
+// Pause freezes elapsed time without advancing the frame. Sorting phases play
+// captured frames over playMsFor(); non-sort stages (PAD / phase 2 / UNPAD) hold
+// briefly — phase 2 longer, to read the colour-coded unshuffle.
+function animateStage(stage, gen) {
   return new Promise(resolve => {
     const endOp = ops.find(o => o.phaseNum === stage);
     if (!endOp) { resolve(); return; }
     const n = endOp.displayN;
     N = n; currentPhaseNum = stage;
+    renderPhaseInfo();
 
-    if (PLAYABLE.includes(stage)) {
-      const frames = capturePhaseFrames(phaseStartGrid(stage), n, stage);
-      if (frames.length < 2) { grid = endOp.gridSnapshot.slice(); renderPlay(); resolve(); return; }
-      const dur = playMsFor(stage), lastIdx = frames.length - 1, t0 = performance.now();
-      (function tick(now) {
-        if (playCancel) { resolve(); return; }
-        const p = Math.min(1, (now - t0) / dur);
-        grid = frames[Math.round(p * lastIdx)];
-        renderPlay();
-        if (p < 1) playRAF = requestAnimationFrame(tick);
-        else { grid = endOp.gridSnapshot.slice(); renderPlay(); resolve(); }
-      })(performance.now());
-    } else {
-      grid = endOp.gridSnapshot.slice();
-      renderPlay();
-      const hold = (stage === 2) ? 1500 : 700, t0 = performance.now();
-      (function wait(now) {
-        if (playCancel) { resolve(); return; }
-        if (now - t0 < hold) playRAF = requestAnimationFrame(wait);
-        else resolve();
-      })(performance.now());
-    }
+    const sorting = PLAYABLE.includes(stage);
+    const frames  = sorting ? capturePhaseFrames(phaseStartGrid(stage), n, stage) : null;
+    if (sorting && frames.length < 2) { grid = endOp.gridSnapshot.slice(); renderPlay(); resolve(); return; }
+    if (!sorting) { grid = endOp.gridSnapshot.slice(); renderPlay(); }
+
+    const dur     = sorting ? playMsFor(stage) : ((stage === 2) ? 1500 : 700);
+    const lastIdx = sorting ? frames.length - 1 : 0;
+    const t0      = performance.now();
+    let   last    = t0, pausedMs = 0;
+
+    (function tick(now) {
+      if (gen !== playGen) { resolve(); return; }                 // superseded
+      if (paused) { pausedMs += now - last; last = now; playRAF = requestAnimationFrame(tick); return; }
+      last = now;
+      const p = Math.min(1, (now - t0 - pausedMs) / dur);
+      if (sorting) { grid = frames[Math.round(p * lastIdx)]; renderPlay(); }
+      if (p < 1) { playRAF = requestAnimationFrame(tick); }
+      else { if (sorting) { grid = endOp.gridSnapshot.slice(); renderPlay(); } resolve(); }
+    })(t0);
   });
 }
 
 // Play the currently selected phase from the previous phase's end state.
 async function playCurrentPhase() {
-  if (playing) { stopPlayback(); return; }
   const phase = currentPhaseNum;
   if (!ops.length || !PLAYABLE.includes(phase)) return;
-  startPlayback(false);
-  await animateStage(phase);
-  settleTo(playCancel ? currentPhaseNum : phase);
+  cancelPlayback();
+  const gen = startPlayback();
+  await animateStage(phase, gen);
+  if (gen !== playGen) return;                 // superseded — owner stops here
+  settleTo(phase);
   endPlayback();
 }
 
 // Play the entire sequence, stage by stage, start to finish.
 async function playAll() {
-  if (playing) { stopPlayback(); return; }
   if (!ops.length) return;
-  startPlayback(true);
+  cancelPlayback();
+  const gen = startPlayback();
   for (const stage of getPhaseOrder()) {
-    if (playCancel) break;
-    await animateStage(stage);
+    await animateStage(stage, gen);
+    if (gen !== playGen) return;               // superseded
   }
-  if (playCancel) {
-    settleTo(currentPhaseNum);
-  } else {
-    const di = ops.findIndex(o => o.type === 'done');
-    opIdx = di < 0 ? ops.length : di;       // rest at the fully-sorted end
-  }
+  const di = ops.findIndex(o => o.type === 'done');
+  opIdx = di < 0 ? ops.length : di;            // rest at the fully-sorted end
   endPlayback();
+}
+
+// Previous / next phase. navOrder includes 0 (initial grid). Uses currentPhaseNum
+// (always current, even mid Play-All) + jumpToPhase, so it is robust to stale
+// opIdx. Cancels any running playback first.
+function navOrder() { return [0, ...getPhaseOrder()]; }
+function goPrev() {
+  cancelPlayback();
+  setEditingDisabled(false);
+  const order = navOrder();
+  let i = order.indexOf(currentPhaseNum); if (i < 0) i = 0;
+  jumpToPhase(order[Math.max(0, i - 1)]);
+}
+function goNext() {
+  cancelPlayback();
+  setEditingDisabled(false);
+  const order = navOrder();
+  let i = order.indexOf(currentPhaseNum); if (i < 0) i = 0;
+  if (i < order.length - 1) jumpToPhase(order[i + 1]);
+  else updateControls();
 }
 
 // ---------------------------------------------------------------------------
@@ -1838,35 +1958,10 @@ function closeGridModal() {
 // UI updates
 // ---------------------------------------------------------------------------
 function updateUI() {
-  const p     = PHASES.find(ph => ph.num === currentPhaseNum);
-  const badge = document.getElementById('phase-badge');
-
-  if (!p) {
-    badge.textContent = '—';
-    badge.className   = 'phase-badge';
-    document.getElementById('phase-title-text').textContent = t('ready');
-    document.getElementById('phase-desc-text').textContent  = isPaddingNeeded()
-      ? t('readyDescPad')(logicalN, nextValidN(logicalN))
-      : t('readyDesc');
-  } else {
-    badge.textContent = (p.num === 'PAD') ? 'P' : (p.num === 'UNPAD') ? 'U' : p.num;
-    badge.className   = 'phase-badge active';
-    document.getElementById('phase-title-text').textContent = p.title[LANG];
-    document.getElementById('phase-desc-text').textContent  = p.desc[LANG];
-  }
-
-  const curIdx = (currentPhaseNum === 0) ? -1 : phaseIndex(currentPhaseNum);
-  for (let i = 1; i <= 8; i++) {
-    const dot    = document.getElementById(`pdot-${i}`);
-    const dotIdx = phaseIndex(i);
-    dot.className = 'phase-dot';
-    if (dotIdx < curIdx)            dot.classList.add('done');
-    else if (i === currentPhaseNum) dot.classList.add('current');
-  }
-
+  renderPhaseInfo();
   updateSizeButtons();
   updateModeButtons();
-  updatePlayButton();
+  updateControls();
 }
 
 function updatePhaseButtons() {
@@ -1916,9 +2011,18 @@ function applySize(n) {
 // ---------------------------------------------------------------------------
 // Event listeners
 // ---------------------------------------------------------------------------
-document.getElementById('btn-step') .addEventListener('click', stepForward);
+document.getElementById('btn-prev') .addEventListener('click', goPrev);
+document.getElementById('btn-step') .addEventListener('click', goNext);
 document.getElementById('btn-play') .addEventListener('click', playCurrentPhase);
 document.getElementById('btn-play-all').addEventListener('click', playAll);
+document.getElementById('btn-pause').addEventListener('click', togglePause);
+
+// Modal mirror buttons (prev / next / play / play-all / pause)
+document.getElementById('mbtn-prev').addEventListener('click', goPrev);
+document.getElementById('mbtn-next').addEventListener('click', goNext);
+document.getElementById('mbtn-play').addEventListener('click', playCurrentPhase);
+document.getElementById('mbtn-play-all').addEventListener('click', playAll);
+document.getElementById('mbtn-pause').addEventListener('click', togglePause);
 document.getElementById('btn-reset').addEventListener('click', () => { exitDrawMode(); initGrid(); });
 document.getElementById('grid-size').addEventListener('change', () => { if (drawMode) startDraw(); else initGrid(); });
 
