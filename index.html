@@ -25,7 +25,7 @@
     --border: rgba(255,255,255,0.07);
     --border2: rgba(255,255,255,0.14);
     --text: #e8eaf0;
-    --muted: #7a8299;
+    --muted: #7a8299; 
     --accent: #e2c97e;
     --accent2: #6c9cdc;
     --accent3: #7ecba1;
@@ -121,11 +121,10 @@
 
   .demo-header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: flex-start;
     padding: 14px 20px;
     border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
     gap: 10px;
   }
 
@@ -514,6 +513,8 @@
         <input type="number" id="grid-size" min="16" max="256" value="81">
         <button class="btn" id="btn-reset">Reset</button>
         <button class="btn" id="btn-draw" disabled>Σχεδίαση</button>
+      </div>
+      <div class="controls">
         <span class="phase-jump-label" data-i18n="jumpLabel">Φάση:</span>
         <div class="phase-jump-row">
           <button class="phase-btn" data-phase="0">0</button>
