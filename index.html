@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="el"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
+<!-- Register COI Service Worker as early as possible so SharedArrayBuffer is
+     available. On the very first load the SW registers and the page reloads
+     automatically; every subsequent load is cross-origin-isolated. -->
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./coi-serviceworker.js').then(() => {
@@ -183,8 +186,7 @@
 
   .grid-wrap {
     padding: 20px;
-    overflow: auto;
-    max-height: 78vh;
+    overflow-x: auto;
     border-bottom: 1px solid var(--border);
   }
 
@@ -208,8 +210,6 @@
   }
 
   .lang-toggle:hover { background: var(--surface2); border-color: var(--muted); }
-
-  .zoom-slider { width: 90px; cursor: pointer; accent-color: var(--accent); }
 
   .phase-panel {
     display: flex;
@@ -422,8 +422,6 @@
           <button class="phase-btn" id="phase-btn-unpad" data-phase="UNPAD" style="display:none">U</button>
         </div>
         <button class="btn primary" id="btn-step" data-i18n="btnStep">Επόμενη Φάση</button>
-        <span class="n-label" data-i18n="zoomLabel">Μεγέθυνση</span>
-        <input type="range" id="zoom-slider" class="zoom-slider" min="1" max="8" step="0.5" value="1">
       </div>
     </div>
 
@@ -552,7 +550,6 @@ const STRINGS = {
     heroSub:        'Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n×n επεξεργαστών.',
     jumpLabel:      'Φάση:',
     btnStep:        'Επόμενη Φάση',
-    zoomLabel:      'Μεγέθυνση',
     legendBlock:    'Όριο block',
     legendDirty:    'Dirty περιοχή',
     ready:          'Έτοιμο',
@@ -567,7 +564,6 @@ const STRINGS = {
     heroSub:        'Parallel sorting algorithm for an n×n mesh of processors.',
     jumpLabel:      'Phase:',
     btnStep:        'Next Phase',
-    zoomLabel:      'Zoom',
     legendBlock:    'Block boundary',
     legendDirty:    'Dirty region',
     ready:          'Ready',
@@ -660,11 +656,9 @@ async function dispatchPairs(flat) {
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
-const canvas   = document.getElementById('grid-canvas');
-const ctx      = canvas.getContext('2d');
-const gridWrap = document.querySelector('.grid-wrap');
+const canvas = document.getElementById('grid-canvas');
+const ctx    = canvas.getContext('2d');
 
-let zoom            = 1;    // viewing zoom multiplier (1–8×)
 let logicalN        = 16;
 let N               = 16;
 let logicalGrid     = [];      // regular Array of 0/1
@@ -1009,14 +1003,9 @@ function drawGrid() {
   if (suppressDraw || !grid) return;
 
   const bound = Math.min(560, window.innerWidth - 48);
-  const fit   = Math.max(1, Math.floor(bound / N));
-  let   cell  = Math.max(1, Math.round(fit * zoom));
-  const MAXPX = 2600;                       // cap CSS size to bound canvas memory
-  if (cell * N > MAXPX) cell = Math.max(1, Math.floor(MAXPX / N));
+  const cell  = Math.max(1, Math.floor(bound / N));
   const size  = cell * N;
   const dpr   = window.devicePixelRatio || 1;
-
-  gridWrap.style.cursor = zoom > 1 ? 'grab' : 'default';
 
   if (canvas.width !== size * dpr || canvas.height !== size * dpr) {
     canvas.width  = size * dpr;
@@ -1147,33 +1136,6 @@ document.getElementById('lang-toggle').addEventListener('click', () => {
   localStorage.setItem('lang', LANG);
   applyLang();
   updateUI();
-});
-
-// Zoom slider
-document.getElementById('zoom-slider').addEventListener('input', e => {
-  zoom = parseFloat(e.target.value);
-  drawGrid();
-});
-
-// Drag-to-pan inside the scroll container (only meaningful when zoomed)
-let panActive = false, panSX = 0, panSY = 0, panSL = 0, panST = 0;
-gridWrap.addEventListener('mousedown', e => {
-  if (zoom <= 1) return;
-  panActive = true;
-  panSX = e.clientX; panSY = e.clientY;
-  panSL = gridWrap.scrollLeft; panST = gridWrap.scrollTop;
-  gridWrap.style.cursor = 'grabbing';
-  e.preventDefault();
-});
-window.addEventListener('mousemove', e => {
-  if (!panActive) return;
-  gridWrap.scrollLeft = panSL - (e.clientX - panSX);
-  gridWrap.scrollTop  = panST - (e.clientY - panSY);
-});
-window.addEventListener('mouseup', () => {
-  if (!panActive) return;
-  panActive = false;
-  gridWrap.style.cursor = zoom > 1 ? 'grab' : 'default';
 });
 
 // ---------------------------------------------------------------------------
