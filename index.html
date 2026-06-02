@@ -403,6 +403,7 @@
     image-rendering: pixelated;
     box-shadow: 0 10px 50px rgba(0,0,0,0.6);
     border-radius: 4px;
+    cursor: zoom-out;
   }
 
   .grid-modal-close {
@@ -1380,6 +1381,7 @@ window.addEventListener('resize', drawGrid);
 // Click-to-expand modal
 canvas.addEventListener('click', openGridModal);
 document.getElementById('grid-modal-close').addEventListener('click', closeGridModal);
+modalCanvas.addEventListener('click', closeGridModal);
 gridModal.addEventListener('click', e => { if (e.target === gridModal) closeGridModal(); });
 window.addEventListener('keydown', e => { if (e.key === 'Escape') closeGridModal(); });
 
