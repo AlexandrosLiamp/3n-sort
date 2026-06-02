@@ -150,10 +150,16 @@
   .hero h1 em {
     font-style: italic;
     font-weight: 300;
-    background: linear-gradient(120deg, var(--accent), #f2dca0);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--accent);
+  }
+
+  @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+    .hero h1 em {
+      background: linear-gradient(120deg, var(--accent), #f2dca0);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
   }
 
   .hero-sub {
@@ -209,7 +215,7 @@
     font-size: 10px;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--faint);
+    color: var(--muted);
     margin-right: 2px;
   }
 
@@ -647,7 +653,7 @@
 </div>
 
 <header class="hero">
-  <p class="hero-eyebrow" data-i18n="heroEyebrow">Παράλληλη Οπτικοποίηση </p>
+  <p class="hero-eyebrow" data-i18n="heroEyebrow">Διαδραστική Παρουσίαση Αλγορίθμου</p>
   <div class="hero-mark">
     <svg class="hero-logo" viewBox="0 0 128 128" role="img" aria-label="3n-sort logo">
       <rect x="4" y="4" width="120" height="120" rx="26" fill="#0b0e14" stroke="#e2c97e" stroke-opacity="0.45" stroke-width="2"/>
@@ -694,7 +700,7 @@
         <input type="number" id="grid-size" min="16" max="256" value="81">
         <span class="spacer"></span>
         <button class="btn ghost" id="btn-reset" data-i18n="randomGrid">Τυχαίο Πλέγμα</button>
-        <button class="btn ghost" id="btn-draw" disabled>Σχεδίαση</button>
+        <button class="btn ghost" id="btn-draw" disabled>Σχεδίασε</button>
       </div>
       <div class="control-row">
         <span class="ctl-label" data-i18n="jumpLabel">Φάση:</span>
@@ -786,32 +792,32 @@ const PHASES = [
   { num: 'PAD',
     title: { el: 'Padding — Επέκταση σε έγκυρο μέγεθος',
              en: 'Padding — Expand to a valid size' },
-    desc:  { el: 'Το πλέγμα επεκτείνεται στο επόμενο έγκυρο μέγεθος (k⁴). Το αρχικό πλέγμα παραμένει ως έχει στην επάνω-αριστερή γωνία· οι επιπλέον γραμμές (κάτω) και στήλες (δεξιά) γεμίζουν με 1 (μέγιστη τιμή), ώστε μετά την ταξινόμηση να βρεθούν στο τέλος.',
-             en: 'The grid is expanded to the next valid size (k⁴). The original grid stays intact in the top-left corner; the extra rows (bottom) and columns (right) are filled with 1 (max value) so they end up last after sorting.' }
+    desc:  { el: 'Το πλέγμα επεκτείνεται στο επόμενο έγκυρο μέγεθος (k⁴). Το αρχικό πλέγμα παραμένει ως έχει στην επάνω-αριστερή γωνία και προστίθεται 1 στις υπόλοιπες θέσεις.',
+             en: 'The grid is expanded to the next valid size (k⁴). The original grid stays intact in the top-left corner, and 1 is added to the remaining cells.' }
   },
   { num: 1,
     title: { el: 'Φάση 1 — Ταξινόμηση blocks σε snakelike διάταξη',
              en: 'Phase 1 — Sort blocks in snakelike order' },
-    desc:  { el: 'Το πλέγμα χωρίζεται σε n¼ × n¼ blocks μεγέθους n¾ × n¾. Κάθε block ταξινομείται ανεξάρτητα σε snakelike διάταξη. Μετά το βήμα αυτό, κάθε block έχει το πολύ μία dirty γραμμή.',
+    desc:  { el: 'Το πλέγμα χωρίζεται σε n¼ × n¼ blocks μεγέθους n¾ × n¾. Κάθε block ταξινομείται ανεξάρτητα σε snakelike διάταξη. Μετά το βήμα αυτό, κάθε block έχει το πολύ μία βρώμικη γραμμή.',
              en: 'The grid is divided into n¼ × n¼ blocks of size n¾ × n¾. Each block is sorted independently in snakelike order. After this step, each block has at most one dirty row.' }
   },
   { num: 2,
-    title: { el: 'Φάση 2 — N^{1/4}-way unshuffle στηλών',
-             en: 'Phase 2 — N^{1/4}-way column unshuffle' },
-    desc:  { el: 'Οι στήλες κάθε block μοιράζονται κυκλικά σε όλα τα blocks της ίδιας οριζόντιας λωρίδας. Αυτό εξασφαλίζει ότι τα βάρη δύο οποιωνδήποτε blocks στην ίδια οριζόντια λωρίδα διαφέρουν κατά το πολύ n¼.',
-             en: 'The columns of each block are dealt round-robin across all blocks in the same horizontal strip. This guarantees that the weights of any two blocks in the same horizontal strip differ by at most n¼.' }
+    title: { el: 'Φάση 2 — n¼-way unshuffle στηλών',
+             en: 'Phase 2 — n¼-way column unshuffle' },
+    desc:  { el: 'Εκτελούμε n¼-way unshuffle των στηλών του πλέγματος. Σκοπός είναι η αναδιανομή όλων των στηλών ενός block σε όλα τα n¼ block του ίδιου οριζόντιου slice. k-way unshuffle ορίζεται ως ανακατανομή που αντιστοιχεί με το μοίρασμα n καρτών σε k παίκτες με round-robin τρόπο.',
+             en: 'We perform an n¼-way unshuffle of the grid’s columns. The goal is to redistribute all the columns of a block across all n¼ blocks of the same horizontal slice. A k-way unshuffle is defined as the redistribution corresponding to dealing n cards to k players in round-robin fashion.' }
   },
   { num: 3,
     title: { el: 'Φάση 3 — Εκ νέου ταξινόμηση blocks',
              en: 'Phase 3 — Re-sort blocks' },
-    desc:  { el: 'Μετά την αναδιανομή των στηλών, κάθε block ταξινομείται ξανά σε snakelike διάταξη. Κάθε block έχει και πάλι το πολύ μία ημιτελή γραμμή.',
-             en: 'After redistributing the columns, each block is sorted again in snakelike order. Each block again has at most one unfinished row.' }
+    desc:  { el: 'Μετά την αναδιανομή των στηλών, κάθε block ταξινομείται ξανά σε snakelike διάταξη. Κάθε block έχει και πάλι το πολύ δύο βρώμικες γραμμές.',
+             en: 'After redistributing the columns, each block is sorted again in snakelike order. Each block again has at most two dirty rows.' }
   },
   { num: 4,
     title: { el: 'Φάση 4 — Ταξινόμηση στηλών',
              en: 'Phase 4 — Sort columns' },
-    desc:  { el: 'Κάθε στήλη του πλέγματος ταξινομείται αύξουσα από πάνω προς τα κάτω. Μετά το βήμα αυτό, τα βάρη δύο οποιωνδήποτε κατακόρυφων λωρίδων διαφέρουν κατά το πολύ n½.',
-             en: 'Each column of the grid is sorted in ascending order from top to bottom. After this step, the weights of any two vertical strips differ by at most n½.' }
+    desc:  { el: 'Κάθε στήλη του πλέγματος ταξινομείται αύξουσα από πάνω προς τα κάτω. Μετά το βήμα αυτό, υπάρχουν το πολύ n¼ βρώμικες γραμμές.',
+             en: 'Each column of the grid is sorted in ascending order from top to bottom. After this step, there are at most n¼ dirty rows.' }
   },
   { num: 5,
     title: { el: 'Φάση 5 — Ταξινόμηση ζευγών blocks 1+2, 3+4 … ανά slice',
@@ -822,13 +828,13 @@ const PHASES = [
   { num: 6,
     title: { el: 'Φάση 6 — Ταξινόμηση ζευγών blocks 2+3, 4+5 … ανά slice',
              en: 'Phase 6 — Sort block pairs 2+3, 4+5 … per slice' },
-    desc:  { el: 'Σε κάθε κατακόρυφη λωρίδα, τα ζεύγη blocks 2+3, 4+5 κ.ο.κ. ταξινομούνται συλλογικά. Μετά τις φάσεις 5 και 6 απομένουν το πολύ 2 ημιτελείς γραμμές σε ολόκληρο το πλέγμα.',
-             en: 'Within each vertical strip, the block pairs 2+3, 4+5, etc. are sorted together. After phases 5 and 6, at most 2 unfinished rows remain in the whole grid.' }
+    desc:  { el: 'Σε κάθε κατακόρυφη λωρίδα, τα ζεύγη blocks 2+3, 4+5 κ.ο.κ. ταξινομούνται συλλογικά. Μετά τις φάσεις 5 και 6 απομένει το πολύ 1 βρώμικη γραμμή σε κάθε κάθετο slice.',
+             en: 'Within each vertical strip, the block pairs 2+3, 4+5, etc. are sorted together. After phases 5 and 6, at most 1 dirty row remains in each vertical slice.' }
   },
   { num: 7,
-    title: { el: 'Φάση 7 — Ταξινόμηση γραμμών κατά snake',
-             en: 'Phase 7 — Sort rows along the snake' },
-    desc:  { el: 'Κάθε ζυγή γραμμή ταξινομείται αύξουσα (→) και κάθε μονή φθίνουσα (←), σύμφωνα με την κατεύθυνση του snake. Μετά το βήμα αυτό η μη ταξινομημένη ζώνη περιορίζεται σε το πολύ n¾ στοιχεία..',
+    title: { el: 'Φάση 7 — Ταξινόμηση γραμμών κατά την κατεύθυνση του snake',
+             en: 'Phase 7 — Sort rows along the snake direction' },
+    desc:  { el: 'Κάθε ζυγή γραμμή ταξινομείται αύξουσα (→) και κάθε μονή φθίνουσα (←), σύμφωνα με την κατεύθυνση του snake. Μετά το βήμα αυτό η μη ταξινομημένη ζώνη περιορίζεται σε το πολύ n¾ στοιχεία.',
              en: 'Each even row is sorted ascending (→) and each odd row descending (←), following the snake direction. After this step the unsorted zone is reduced to at most n¾ elements.' }
   },
   { num: 8,
@@ -851,7 +857,7 @@ const PHASES = [
 // ---------------------------------------------------------------------------
 const STRINGS = {
   el: {
-    heroEyebrow:    'Παράλληλη Οπτικοποίηση',
+    heroEyebrow:    'Διαδραστική Παρουσίαση Αλγορίθμου',
     heroSub:        'Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n×n επεξεργαστών.',
     gridSize:       'Μέγεθος:',
     jumpLabel:      'Φάση:',
@@ -859,7 +865,7 @@ const STRINGS = {
     legendBlock:    'Όριο block',
     legendDirty:    'Dirty περιοχή',
     modalHint:      'Κλικ εκτός ή Esc για κλείσιμο',
-    drawStart:      'Σχεδίαση',
+    drawStart:      'Σχεδίασε',
     drawDone:       'Ολοκλήρωση',
     drawTitle:      'Λειτουργία σχεδίασης',
     drawHint:       'Ζωγραφίστε στο πλέγμα με το ποντίκι. Επιλέξτε χρώμα και μέγεθος πινέλου, και πατήστε «Ολοκλήρωση» για εκτέλεση.',
@@ -872,11 +878,10 @@ const STRINGS = {
     readyDesc:      'Επιλέξτε μέγεθος πλέγματος και πατήστε Επόμενη Φάση.',
     readyDescPad:   (a, b) => `Μέγεθος ${a}×${a} — padding σε ${b}×${b}. Πατήστε P ή Επόμενη Φάση.`,
     computingTitle: 'Υπολογισμός…',
-    computingDesc:  'Αρχικοποίηση Web Workers — αναμονή ολοκλήρωσης.',
-    langBtn:        'EN'
+    computingDesc:  'Αρχικοποίηση Web Workers — αναμονή ολοκλήρωσης.'
   },
   en: {
-    heroEyebrow:    'Parallel Visualization',
+    heroEyebrow:    'Interactive Algorithm Presentation',
     heroSub:        'Parallel sorting algorithm for an n×n mesh of processors.',
     gridSize:       'Size:',
     jumpLabel:      'Phase:',
@@ -897,8 +902,7 @@ const STRINGS = {
     readyDesc:      'Choose a grid size and press Next Phase.',
     readyDescPad:   (a, b) => `Size ${a}×${a} — padding to ${b}×${b}. Press P or Next Phase.`,
     computingTitle: 'Computing…',
-    computingDesc:  'Initialising Web Workers — please wait.',
-    langBtn:        'ΕΛ'
+    computingDesc:  'Initialising Web Workers — please wait.'
   }
 };
 
