@@ -68,6 +68,7 @@
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Layered backdrop: grid texture + warm/cool glows */
@@ -621,6 +622,15 @@
     .lang-switch { top: 12px; right: 12px; padding: 3px; }
     .lang-opt { padding: 5px 9px; gap: 6px; }
     .btn { padding: 7px 11px; }
+  }
+
+  /* Larger tap targets on touch devices (phones + tablets, any width) */
+  @media (pointer: coarse) {
+    .btn { padding: 9px 14px; }
+    .phase-btn { width: 34px; height: 34px; font-size: 11px; }
+    .seg .size-btn { padding: 7px 13px; }
+    .lang-opt { padding: 7px 11px; }
+    .draw-toolbar input[type="range"] { height: 24px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1262,6 +1272,7 @@ function startDraw() {
 
   document.getElementById('draw-toolbar').style.display = '';
   canvas.style.cursor = 'crosshair';
+  canvas.style.touchAction = 'none';   // finger-drag paints instead of scrolling
   document.getElementById('btn-step').disabled = true;
   document.getElementById('btn-draw').disabled = true;
   document.querySelectorAll('.phase-btn').forEach(b => b.disabled = true);
@@ -1281,6 +1292,7 @@ async function finishDraw() {
   drawMode = false;
   document.getElementById('draw-toolbar').style.display = 'none';
   canvas.style.cursor = '';
+  canvas.style.touchAction = '';
   refreshDrawLabels();
 
   logicalGrid     = Array.from(grid); // commit the painting
@@ -1294,6 +1306,7 @@ function exitDrawMode() {
   document.getElementById('draw-toolbar').style.display = 'none';
   document.getElementById('btn-draw').disabled = false;
   canvas.style.cursor = '';
+  canvas.style.touchAction = '';
   refreshDrawLabels();
 }
 
@@ -1626,9 +1639,17 @@ document.getElementById('brush-size').addEventListener('input', e => {
   document.getElementById('brush-size-val').textContent = brushSize;
 });
 document.getElementById('btn-clear').addEventListener('click', () => { if (grid) { grid.fill(0); drawGrid(); } });
-canvas.addEventListener('mousedown', e => { if (!drawMode) return; painting = true; paintAt(e); e.preventDefault(); });
-canvas.addEventListener('mousemove', e => { if (drawMode && painting) paintAt(e); });
-window.addEventListener('mouseup', () => { if (painting && drawMode) drawGrid(); painting = false; });
+canvas.addEventListener('pointerdown', e => {
+  if (!drawMode) return;
+  painting = true;
+  try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+  paintAt(e);
+  e.preventDefault();
+});
+canvas.addEventListener('pointermove', e => { if (drawMode && painting) { paintAt(e); e.preventDefault(); } });
+const endStroke = () => { if (painting && drawMode) drawGrid(); painting = false; };
+window.addEventListener('pointerup', endStroke);
+window.addEventListener('pointercancel', endStroke);
 
 document.querySelectorAll('.phase-btn').forEach(btn => {
   btn.addEventListener('click', () => {
