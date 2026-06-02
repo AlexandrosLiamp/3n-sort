@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="el"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
-<!-- Register COI Service Worker as early as possible so SharedArrayBuffer is
-     available. On the very first load the SW registers and the page reloads
-     automatically; every subsequent load is cross-origin-isolated. -->
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./coi-serviceworker.js').then(() => {
@@ -186,11 +183,33 @@
 
   .grid-wrap {
     padding: 20px;
-    overflow-x: auto;
+    overflow: auto;
+    max-height: 78vh;
     border-bottom: 1px solid var(--border);
   }
 
   #grid-canvas { display: block; margin: 0 auto; }
+
+  .lang-toggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .lang-toggle:hover { background: var(--surface2); border-color: var(--muted); }
+
+  .zoom-slider { width: 90px; cursor: pointer; accent-color: var(--accent); }
 
   .phase-panel {
     display: flex;
@@ -369,10 +388,12 @@
 </head>
 <body>
 
+<button id="lang-toggle" class="lang-toggle">EN</button>
+
 <header class="hero">
-  <p class="hero-eyebrow">Παράλληλη Οπτικοποίηση </p>
+  <p class="hero-eyebrow" data-i18n="heroEyebrow">Παράλληλη Οπτικοποίηση </p>
   <h1><em>3n</em>-sort</h1>
-  <p class="hero-sub">
+  <p class="hero-sub" data-i18n="heroSub">
     Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n&times;n επεξεργαστών.
   </p>
 </header>
@@ -386,7 +407,7 @@
         <span class="n-label">n =</span>
         <input type="number" id="grid-size" min="16" max="256" value="16">
         <button class="btn" id="btn-reset">Reset</button>
-        <span class="phase-jump-label">Φάση:</span>
+        <span class="phase-jump-label" data-i18n="jumpLabel">Φάση:</span>
         <div class="phase-jump-row">
           <button class="phase-btn" data-phase="0">0</button>
           <button class="phase-btn" id="phase-btn-pad" data-phase="PAD" style="display:none">P</button>
@@ -400,7 +421,9 @@
           <button class="phase-btn" data-phase="8">8</button>
           <button class="phase-btn" id="phase-btn-unpad" data-phase="UNPAD" style="display:none">U</button>
         </div>
-        <button class="btn primary" id="btn-step">Επόμενη Φάση</button>
+        <button class="btn primary" id="btn-step" data-i18n="btnStep">Επόμενη Φάση</button>
+        <span class="n-label" data-i18n="zoomLabel">Μεγέθυνση</span>
+        <input type="range" id="zoom-slider" class="zoom-slider" min="1" max="8" step="0.5" value="1">
       </div>
     </div>
 
@@ -426,10 +449,6 @@
       <canvas id="grid-canvas" width="560" height="560"></canvas>
     </div>
 
-    <div class="step-indicator">
-      <span class="step-badge">Φάση: <strong id="phase-label">&mdash;</strong></span>
-    </div>
-
     <div class="legend">
       <div class="legend-item">
         <div class="legend-swatch" style="background:#0b0e14;border:1px solid rgba(255,255,255,0.18)"></div>
@@ -441,7 +460,11 @@
       </div>
       <div class="legend-item">
         <div class="legend-swatch" style="background:rgba(108,156,220,0.55)"></div>
-        <span>Όριο block</span>
+        <span data-i18n="legendBlock">Όριο block</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:transparent;border:1.5px solid #e27e7e"></div>
+        <span data-i18n="legendDirty">Dirty περιοχή</span>
       </div>
     </div>
 
@@ -458,46 +481,115 @@ const VALID_SIZES = [16, 81, 256];
 
 const PHASES = [
   { num: 'PAD',
-    title: 'Padding — Επέκταση σε έγκυρο μέγεθος',
-    desc:  'Το πλέγμα επεκτείνεται στο επόμενο έγκυρο μέγεθος. Οι επιπλέον θέσεις γεμίζουν με 1.'
+    title: { el: 'Padding — Επέκταση σε έγκυρο μέγεθος',
+             en: 'Padding — Expand to a valid size' },
+    desc:  { el: 'Το πλέγμα επεκτείνεται στο επόμενο έγκυρο μέγεθος. Οι επιπλέον θέσεις γεμίζουν με 1.',
+             en: 'The grid is expanded to the next valid size. The extra cells are filled with 1.' }
   },
   { num: 1,
-    title: 'Φάση 1 — Ταξινόμηση blocks σε snakelike διάταξη',
-    desc:  'Το πλέγμα χωρίζεται σε n¼ × n¼ blocks μεγέθους n¾ × n¾. Κάθε block ταξινομείται ανεξάρτητα σε snakelike διάταξη. Μετά το βήμα αυτό, κάθε block έχει το πολύ μία dirty γραμμή.'
+    title: { el: 'Φάση 1 — Ταξινόμηση blocks σε snakelike διάταξη',
+             en: 'Phase 1 — Sort blocks in snakelike order' },
+    desc:  { el: 'Το πλέγμα χωρίζεται σε n¼ × n¼ blocks μεγέθους n¾ × n¾. Κάθε block ταξινομείται ανεξάρτητα σε snakelike διάταξη. Μετά το βήμα αυτό, κάθε block έχει το πολύ μία dirty γραμμή.',
+             en: 'The grid is divided into n¼ × n¼ blocks of size n¾ × n¾. Each block is sorted independently in snakelike order. After this step, each block has at most one dirty row.' }
   },
   { num: 2,
-    title: 'Φάση 2 — N^{1/4}-way unshuffle στηλών',
-    desc:  'Οι στήλες κάθε block μοιράζονται κυκλικά σε όλα τα blocks της ίδιας οριζόντιας λωρίδας. Αυτό εξασφαλίζει ότι τα βάρη δύο οποιωνδήποτε blocks στην ίδια οριζόντια λωρίδα διαφέρουν κατά το πολύ n¼.'
+    title: { el: 'Φάση 2 — N^{1/4}-way unshuffle στηλών',
+             en: 'Phase 2 — N^{1/4}-way column unshuffle' },
+    desc:  { el: 'Οι στήλες κάθε block μοιράζονται κυκλικά σε όλα τα blocks της ίδιας οριζόντιας λωρίδας. Αυτό εξασφαλίζει ότι τα βάρη δύο οποιωνδήποτε blocks στην ίδια οριζόντια λωρίδα διαφέρουν κατά το πολύ n¼.',
+             en: 'The columns of each block are dealt round-robin across all blocks in the same horizontal strip. This guarantees that the weights of any two blocks in the same horizontal strip differ by at most n¼.' }
   },
   { num: 3,
-    title: 'Φάση 3 — Εκ νέου ταξινόμηση blocks',
-    desc:  'Μετά την αναδιανομή των στηλών, κάθε block ταξινομείται ξανά σε snakelike διάταξη. Κάθε block έχει και πάλι το πολύ μία ημιτελή γραμμή.'
+    title: { el: 'Φάση 3 — Εκ νέου ταξινόμηση blocks',
+             en: 'Phase 3 — Re-sort blocks' },
+    desc:  { el: 'Μετά την αναδιανομή των στηλών, κάθε block ταξινομείται ξανά σε snakelike διάταξη. Κάθε block έχει και πάλι το πολύ μία ημιτελή γραμμή.',
+             en: 'After redistributing the columns, each block is sorted again in snakelike order. Each block again has at most one unfinished row.' }
   },
   { num: 4,
-    title: 'Φάση 4 — Ταξινόμηση στηλών',
-    desc:  'Κάθε στήλη του πλέγματος ταξινομείται αύξουσα από πάνω προς τα κάτω. Μετά το βήμα αυτό, τα βάρη δύο οποιωνδήποτε κατακόρυφων λωρίδων διαφέρουν κατά το πολύ n½.'
+    title: { el: 'Φάση 4 — Ταξινόμηση στηλών',
+             en: 'Phase 4 — Sort columns' },
+    desc:  { el: 'Κάθε στήλη του πλέγματος ταξινομείται αύξουσα από πάνω προς τα κάτω. Μετά το βήμα αυτό, τα βάρη δύο οποιωνδήποτε κατακόρυφων λωρίδων διαφέρουν κατά το πολύ n½.',
+             en: 'Each column of the grid is sorted in ascending order from top to bottom. After this step, the weights of any two vertical strips differ by at most n½.' }
   },
   { num: 5,
-    title: 'Φάση 5 — Ταξινόμηση ζευγών blocks 1+2, 3+4 … ανά slice',
-    desc:  'Σε κάθε κατακόρυφο slice, τα ζεύγη blocks 1+2, 3+4 κ.ο.κ. ταξινομούνται συλλογικά σε snakelike διάταξη.'
+    title: { el: 'Φάση 5 — Ταξινόμηση ζευγών blocks 1+2, 3+4 … ανά slice',
+             en: 'Phase 5 — Sort block pairs 1+2, 3+4 … per slice' },
+    desc:  { el: 'Σε κάθε κατακόρυφο slice, τα ζεύγη blocks 1+2, 3+4 κ.ο.κ. ταξινομούνται συλλογικά σε snakelike διάταξη.',
+             en: 'Within each vertical slice, the block pairs 1+2, 3+4, etc. are sorted together in snakelike order.' }
   },
   { num: 6,
-    title: 'Φάση 6 — Ταξινόμηση ζευγών blocks 2+3, 4+5 … ανά slice',
-    desc:  'Σε κάθε κατακόρυφη λωρίδα, τα ζεύγη blocks 2+3, 4+5 κ.ο.κ. ταξινομούνται συλλογικά. Μετά τις φάσεις 5 και 6 απομένουν το πολύ 2 ημιτελείς γραμμές σε ολόκληρο το πλέγμα.'
+    title: { el: 'Φάση 6 — Ταξινόμηση ζευγών blocks 2+3, 4+5 … ανά slice',
+             en: 'Phase 6 — Sort block pairs 2+3, 4+5 … per slice' },
+    desc:  { el: 'Σε κάθε κατακόρυφη λωρίδα, τα ζεύγη blocks 2+3, 4+5 κ.ο.κ. ταξινομούνται συλλογικά. Μετά τις φάσεις 5 και 6 απομένουν το πολύ 2 ημιτελείς γραμμές σε ολόκληρο το πλέγμα.',
+             en: 'Within each vertical strip, the block pairs 2+3, 4+5, etc. are sorted together. After phases 5 and 6, at most 2 unfinished rows remain in the whole grid.' }
   },
   { num: 7,
-    title: 'Φάση 7 — Ταξινόμηση γραμμών κατά snake',
-    desc:  'Κάθε ζυγή γραμμή ταξινομείται αύξουσα (→) και κάθε μονή φθίνουσα (←), σύμφωνα με την κατεύθυνση του snake. Μετά το βήμα αυτό η μη ταξινομημένη ζώνη περιορίζεται σε το πολύ n¾ στοιχεία..'
+    title: { el: 'Φάση 7 — Ταξινόμηση γραμμών κατά snake',
+             en: 'Phase 7 — Sort rows along the snake' },
+    desc:  { el: 'Κάθε ζυγή γραμμή ταξινομείται αύξουσα (→) και κάθε μονή φθίνουσα (←), σύμφωνα με την κατεύθυνση του snake. Μετά το βήμα αυτό η μη ταξινομημένη ζώνη περιορίζεται σε το πολύ n¾ στοιχεία..',
+             en: 'Each even row is sorted ascending (→) and each odd row descending (←), following the snake direction. After this step the unsorted zone is reduced to at most n¾ elements.' }
   },
   { num: 8,
-    title: 'Φάση 8 — Odd-even transposition στο συνολικό snake',
-    desc:  'Εκτελούνται 2·n¾ βήματα odd-even transposition sort πάνω στο συνολικό n² snake'
+    title: { el: 'Φάση 8 — Odd-even transposition στο συνολικό snake',
+             en: 'Phase 8 — Odd-even transposition over the full snake' },
+    desc:  { el: 'Εκτελούνται 2·n¾ βήματα odd-even transposition sort πάνω στο συνολικό n² snake',
+             en: 'Performs 2·n¾ steps of odd-even transposition sort over the full n² snake.' }
   },
   { num: 'UNPAD',
-    title: 'Unpadding — Εξαγωγή αρχικού πλέγματος',
-    desc:  'Αφαιρούμε τα περιττά στοιχεία και επαναφέρουμε τον πίνακα στις αρχικές διαστάσεις του.'
+    title: { el: 'Unpadding — Εξαγωγή αρχικού πλέγματος',
+             en: 'Unpadding — Extract the original grid' },
+    desc:  { el: 'Αφαιρούμε τα περιττά στοιχεία και επαναφέρουμε τον πίνακα στις αρχικές διαστάσεις του.',
+             en: 'We remove the excess elements and restore the array to its original dimensions.' }
   }
 ];
+
+// ---------------------------------------------------------------------------
+// i18n — static UI strings. PHASES titles/descs carry their own {el,en}.
+// LANG persists in localStorage; applyLang() fills every [data-i18n] element.
+// ---------------------------------------------------------------------------
+const STRINGS = {
+  el: {
+    heroEyebrow:    'Παράλληλη Οπτικοποίηση',
+    heroSub:        'Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n×n επεξεργαστών.',
+    jumpLabel:      'Φάση:',
+    btnStep:        'Επόμενη Φάση',
+    zoomLabel:      'Μεγέθυνση',
+    legendBlock:    'Όριο block',
+    legendDirty:    'Dirty περιοχή',
+    ready:          'Έτοιμο',
+    readyDesc:      'Επιλέξτε μέγεθος πλέγματος και πατήστε Επόμενη Φάση.',
+    readyDescPad:   (a, b) => `Μέγεθος ${a}×${a} — padding σε ${b}×${b}. Πατήστε P ή Επόμενη Φάση.`,
+    computingTitle: 'Υπολογισμός…',
+    computingDesc:  (w) => `Αρχικοποιούνται ${w} Web Workers — αναμονή ολοκλήρωσης.`,
+    langBtn:        'EN'
+  },
+  en: {
+    heroEyebrow:    'Parallel Visualization',
+    heroSub:        'Parallel sorting algorithm for an n×n mesh of processors.',
+    jumpLabel:      'Phase:',
+    btnStep:        'Next Phase',
+    zoomLabel:      'Zoom',
+    legendBlock:    'Block boundary',
+    legendDirty:    'Dirty region',
+    ready:          'Ready',
+    readyDesc:      'Choose a grid size and press Next Phase.',
+    readyDescPad:   (a, b) => `Size ${a}×${a} — padding to ${b}×${b}. Press P or Next Phase.`,
+    computingTitle: 'Computing…',
+    computingDesc:  (w) => `Initialising ${w} Web Workers — please wait.`,
+    langBtn:        'ΕΛ'
+  }
+};
+
+let LANG = localStorage.getItem('lang') === 'en' ? 'en' : 'el';
+function t(key) { return STRINGS[LANG][key]; }
+
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const v = STRINGS[LANG][el.dataset.i18n];
+    if (typeof v === 'string') el.textContent = v;
+  });
+  document.getElementById('lang-toggle').textContent = STRINGS[LANG].langBtn;
+}
 
 // ---------------------------------------------------------------------------
 // Worker pool — one SharedArrayBuffer, N_WORKERS threads
@@ -568,9 +660,11 @@ async function dispatchPairs(flat) {
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
-const canvas = document.getElementById('grid-canvas');
-const ctx    = canvas.getContext('2d');
+const canvas   = document.getElementById('grid-canvas');
+const ctx      = canvas.getContext('2d');
+const gridWrap = document.querySelector('.grid-wrap');
 
+let zoom            = 1;    // viewing zoom multiplier (1–8×)
 let logicalN        = 16;
 let N               = 16;
 let logicalGrid     = [];      // regular Array of 0/1
@@ -792,10 +886,8 @@ async function initGrid() {
   const badge = document.getElementById('phase-badge');
   badge.className   = 'phase-badge computing';
   badge.textContent = '⋯';
-  document.getElementById('phase-title-text').textContent = 'Υπολογισμός…';
-  document.getElementById('phase-desc-text').textContent  =
-    `Αρχικοποιούνται ${N_WORKERS} Web Workers — αναμονή ολοκλήρωσης.`;
-  document.getElementById('phase-label').textContent = '—';
+  document.getElementById('phase-title-text').textContent = t('computingTitle');
+  document.getElementById('phase-desc-text').textContent  = t('computingDesc')(N_WORKERS);
 
   drawGrid();
 
@@ -917,9 +1009,14 @@ function drawGrid() {
   if (suppressDraw || !grid) return;
 
   const bound = Math.min(560, window.innerWidth - 48);
-  const cell  = Math.max(1, Math.floor(bound / N));
+  const fit   = Math.max(1, Math.floor(bound / N));
+  let   cell  = Math.max(1, Math.round(fit * zoom));
+  const MAXPX = 2600;                       // cap CSS size to bound canvas memory
+  if (cell * N > MAXPX) cell = Math.max(1, Math.floor(MAXPX / N));
   const size  = cell * N;
   const dpr   = window.devicePixelRatio || 1;
+
+  gridWrap.style.cursor = zoom > 1 ? 'grab' : 'default';
 
   if (canvas.width !== size * dpr || canvas.height !== size * dpr) {
     canvas.width  = size * dpr;
@@ -983,18 +1080,15 @@ function updateUI() {
   if (!p) {
     badge.textContent = '—';
     badge.className   = 'phase-badge';
-    document.getElementById('phase-title-text').textContent = 'Έτοιμο';
+    document.getElementById('phase-title-text').textContent = t('ready');
     document.getElementById('phase-desc-text').textContent  = isPaddingNeeded()
-      ? `Μέγεθος ${logicalN}×${logicalN} — padding σε ${nextValidN(logicalN)}×${nextValidN(logicalN)}. Πατήστε P ή Επόμενη Φάση.`
-      : 'Επιλέξτε μέγεθος πλέγματος και πατήστε Επόμενη Φάση.';
-    document.getElementById('phase-label').textContent = '—';
+      ? t('readyDescPad')(logicalN, nextValidN(logicalN))
+      : t('readyDesc');
   } else {
     badge.textContent = (p.num === 'PAD') ? 'P' : (p.num === 'UNPAD') ? 'U' : p.num;
     badge.className   = 'phase-badge active';
-    document.getElementById('phase-title-text').textContent = p.title;
-    document.getElementById('phase-desc-text').textContent  = p.desc;
-    document.getElementById('phase-label').textContent      =
-      (typeof p.num === 'number') ? `${p.num} / 8` : p.num;
+    document.getElementById('phase-title-text').textContent = p.title[LANG];
+    document.getElementById('phase-desc-text').textContent  = p.desc[LANG];
   }
 
   const curIdx = (currentPhaseNum === 0) ? -1 : phaseIndex(currentPhaseNum);
@@ -1047,9 +1141,45 @@ document.querySelectorAll('.phase-btn').forEach(btn => {
 
 window.addEventListener('resize', drawGrid);
 
+// Language toggle
+document.getElementById('lang-toggle').addEventListener('click', () => {
+  LANG = LANG === 'el' ? 'en' : 'el';
+  localStorage.setItem('lang', LANG);
+  applyLang();
+  updateUI();
+});
+
+// Zoom slider
+document.getElementById('zoom-slider').addEventListener('input', e => {
+  zoom = parseFloat(e.target.value);
+  drawGrid();
+});
+
+// Drag-to-pan inside the scroll container (only meaningful when zoomed)
+let panActive = false, panSX = 0, panSY = 0, panSL = 0, panST = 0;
+gridWrap.addEventListener('mousedown', e => {
+  if (zoom <= 1) return;
+  panActive = true;
+  panSX = e.clientX; panSY = e.clientY;
+  panSL = gridWrap.scrollLeft; panST = gridWrap.scrollTop;
+  gridWrap.style.cursor = 'grabbing';
+  e.preventDefault();
+});
+window.addEventListener('mousemove', e => {
+  if (!panActive) return;
+  gridWrap.scrollLeft = panSL - (e.clientX - panSX);
+  gridWrap.scrollTop  = panST - (e.clientY - panSY);
+});
+window.addEventListener('mouseup', () => {
+  if (!panActive) return;
+  panActive = false;
+  gridWrap.style.cursor = zoom > 1 ? 'grab' : 'default';
+});
+
 // ---------------------------------------------------------------------------
-// Boot: init worker pool, then first grid
+// Boot: apply language, init worker pool, then first grid
 // ---------------------------------------------------------------------------
+applyLang();
 initWorkerPool().then(() => initGrid());
 </script>
 
