@@ -301,9 +301,10 @@
     border-left: 1px solid var(--border2);
     background: transparent;
     border-radius: 0 6px 6px 0;
-    padding: 5px 8px;
-    width: 52px;
+    padding: 5px 4px;
+    width: 48px;
     margin-left: 2px;
+    text-align: center;
     transition: background 0.15s, box-shadow 0.15s;
     -moz-appearance: textfield;
     appearance: textfield;
@@ -915,8 +916,8 @@ const STRINGS = {
     randomGrid:     'Τυχαίο',
     colorWhite:     'Λευκό',
     colorBlack:     'Μαύρο',
-    ready:          'Έτοιμο',
-    readyDesc:      'Επιλέξτε μέγεθος πλέγματος και πατήστε Επόμενη Φάση.',
+    ready:          'Δημιουργία Πλέγματος',
+    readyDesc:      'Επιλέξτε μέγεθος πλέγματος (16, 81, 256 ή κάποια άλλη τιμή), στη συνέχεια ορίστε τις τιμές του πλέγματος (Τυχαίες ή Σχεδιάστε) και είστε έτοιμοι.',
     readyDescPad:   (a, b) => `Μέγεθος ${a}×${a} — padding σε ${b}×${b}. Πατήστε P ή Επόμενη Φάση.`,
     computingTitle: 'Υπολογισμός…',
     computingDesc:  'Παρακαλώ περιμένετε.'
@@ -940,8 +941,8 @@ const STRINGS = {
     randomGrid:     'Random',
     colorWhite:     'White',
     colorBlack:     'Black',
-    ready:          'Ready',
-    readyDesc:      'Choose a grid size and press Next Phase.',
+    ready:          'Create Grid',
+    readyDesc:      'Choose a grid size (16, 81, 256 or another value), then set the grid values (Random or Draw) and you are ready.',
     readyDescPad:   (a, b) => `Size ${a}×${a} — padding to ${b}×${b}. Press P or Next Phase.`,
     computingTitle: 'Computing…',
     computingDesc:  'Calculating, please wait.'
