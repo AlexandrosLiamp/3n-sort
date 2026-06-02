@@ -435,6 +435,17 @@
     letter-spacing: 0.08em;
     pointer-events: none;
   }
+
+  .draw-toolbar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .draw-toolbar input[type="range"] { width: 130px; cursor: pointer; accent-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -458,6 +469,7 @@
         <span class="n-label">n =</span>
         <input type="number" id="grid-size" min="16" max="256" value="81">
         <button class="btn" id="btn-reset">Reset</button>
+        <button class="btn" id="btn-draw">Σχεδίαση</button>
         <span class="phase-jump-label" data-i18n="jumpLabel">Φάση:</span>
         <div class="phase-jump-row">
           <button class="phase-btn" data-phase="0">0</button>
@@ -474,6 +486,14 @@
         </div>
         <button class="btn primary" id="btn-step" data-i18n="btnStep">Επόμενη Φάση</button>
       </div>
+    </div>
+
+    <div class="draw-toolbar" id="draw-toolbar" style="display:none">
+      <button class="btn" id="btn-brush-color">Λευκό</button>
+      <span class="n-label" data-i18n="sizeLabel">Μέγεθος</span>
+      <input type="range" id="brush-size" min="1" max="40" step="1" value="4">
+      <span class="n-label" id="brush-size-val">4</span>
+      <button class="btn" id="btn-clear" data-i18n="clear">Καθαρισμός</button>
     </div>
 
     <div class="phase-panel">
@@ -610,6 +630,14 @@ const STRINGS = {
     legendBlock:    'Όριο block',
     legendDirty:    'Dirty περιοχή',
     modalHint:      'Κλικ εκτός ή Esc για κλείσιμο',
+    drawStart:      'Σχεδίαση',
+    drawDone:       'Ολοκλήρωση',
+    drawTitle:      'Λειτουργία σχεδίασης',
+    drawHint:       'Ζωγραφίστε στο πλέγμα με το ποντίκι. Επιλέξτε χρώμα και μέγεθος πινέλου, και πατήστε «Ολοκλήρωση» για εκτέλεση.',
+    sizeLabel:      'Μέγεθος',
+    clear:          'Καθαρισμός',
+    colorWhite:     'Λευκό',
+    colorBlack:     'Μαύρο',
     ready:          'Έτοιμο',
     readyDesc:      'Επιλέξτε μέγεθος πλέγματος και πατήστε Επόμενη Φάση.',
     readyDescPad:   (a, b) => `Μέγεθος ${a}×${a} — padding σε ${b}×${b}. Πατήστε P ή Επόμενη Φάση.`,
@@ -625,6 +653,14 @@ const STRINGS = {
     legendBlock:    'Block boundary',
     legendDirty:    'Dirty region',
     modalHint:      'Click outside or press Esc to close',
+    drawStart:      'Draw',
+    drawDone:       'Finish',
+    drawTitle:      'Drawing mode',
+    drawHint:       'Paint on the grid with the mouse. Pick a colour and brush size, then press “Finish” to run.',
+    sizeLabel:      'Size',
+    clear:          'Clear',
+    colorWhite:     'White',
+    colorBlack:     'Black',
     ready:          'Ready',
     readyDesc:      'Choose a grid size and press Next Phase.',
     readyDescPad:   (a, b) => `Size ${a}×${a} — padding to ${b}×${b}. Press P or Next Phase.`,
@@ -644,6 +680,7 @@ function applyLang() {
     if (typeof v === 'string') el.textContent = v;
   });
   document.getElementById('lang-toggle').textContent = STRINGS[LANG].langBtn;
+  refreshDrawLabels();
 }
 
 // ---------------------------------------------------------------------------
@@ -726,6 +763,11 @@ let ops             = [];
 let opIdx           = 0;
 let currentPhaseNum = 0;
 let suppressDraw    = false;
+
+let drawMode        = false;   // true while the user is painting their own grid
+let drawColor       = 1;       // 1 = white, 0 = black (eraser)
+let brushSize       = 4;       // brush square side, in cells
+let painting        = false;   // mouse currently held down in draw mode
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -931,7 +973,12 @@ async function initGrid() {
   logicalGrid = Array.from({ length: logicalN * logicalN }, () => Math.random() < 0.5 ? 0 : 1);
   grid        = new Uint8Array(logicalGrid);
 
-  // Lock UI and show computing state
+  await computeOps();
+}
+
+// Build all phase ops from the current logicalGrid, showing the computing state.
+// Shared by initGrid (random) and finishDraw (hand-painted).
+async function computeOps() {
   document.getElementById('btn-step').disabled  = true;
   document.getElementById('btn-reset').disabled = true;
   document.querySelectorAll('.phase-btn').forEach(b => b.disabled = true);
@@ -952,6 +999,75 @@ async function initGrid() {
 
   updateUI();
   updatePhaseButtons();
+  drawGrid();
+}
+
+// ---------------------------------------------------------------------------
+// Draw-your-own-grid (paint) mode
+// ---------------------------------------------------------------------------
+function refreshDrawLabels() {
+  document.getElementById('btn-draw').textContent = drawMode ? t('drawDone') : t('drawStart');
+  const cb = document.getElementById('btn-brush-color');
+  cb.textContent     = drawColor === 1 ? t('colorWhite') : t('colorBlack');
+  cb.style.background = drawColor === 1 ? '#e8eaf0' : '#0b0e14';
+  cb.style.color      = drawColor === 1 ? '#0b0e14' : '#e8eaf0';
+}
+
+function startDraw() {
+  drawMode = true;
+  logicalN = Math.max(16, Math.min(256, parseInt(document.getElementById('grid-size').value) || 16));
+  document.getElementById('grid-size').value = logicalN;
+  N               = logicalN;
+  currentPhaseNum = 0;
+  grid            = new Uint8Array(logicalN * logicalN); // blank (all black)
+
+  document.getElementById('draw-toolbar').style.display = '';
+  canvas.style.cursor = 'crosshair';
+  document.getElementById('btn-step').disabled = true;
+  document.querySelectorAll('.phase-btn').forEach(b => b.disabled = true);
+
+  const badge = document.getElementById('phase-badge');
+  badge.className   = 'phase-badge';
+  badge.textContent = '✎';
+  document.getElementById('phase-title-text').textContent = t('drawTitle');
+  document.getElementById('phase-desc-text').textContent  = t('drawHint');
+
+  refreshDrawLabels();
+  drawGrid();
+}
+
+async function finishDraw() {
+  drawMode = false;
+  document.getElementById('draw-toolbar').style.display = 'none';
+  canvas.style.cursor = '';
+  refreshDrawLabels();
+
+  logicalGrid     = Array.from(grid); // commit the painting
+  currentPhaseNum = 0;
+  await computeOps();
+}
+
+function exitDrawMode() {
+  if (!drawMode) return;
+  drawMode = false;
+  document.getElementById('draw-toolbar').style.display = 'none';
+  canvas.style.cursor = '';
+  refreshDrawLabels();
+}
+
+function paintAt(e) {
+  const rect = canvas.getBoundingClientRect();
+  const cw   = rect.width  / N;
+  const ch   = rect.height / N;
+  const cx   = Math.floor((e.clientX - rect.left) / cw);
+  const cy   = Math.floor((e.clientY - rect.top)  / ch);
+  const r    = Math.floor(brushSize / 2);
+  for (let dy = -r; dy <= r; dy++)
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, y = cy + dy;
+      if (x < 0 || x >= N || y < 0 || y >= N) continue;
+      grid[y * N + x] = drawColor;
+    }
   drawGrid();
 }
 
@@ -1150,7 +1266,7 @@ const gridModal   = document.getElementById('grid-modal');
 const modalCanvas = document.getElementById('modal-canvas');
 
 function openGridModal() {
-  if (!grid) return;
+  if (drawMode || !grid) return;
   const maxFit = Math.min(window.innerWidth, window.innerHeight) * 0.9;
   const cell   = Math.max(6, Math.floor(maxFit / N));
   const size   = cell * N;
@@ -1229,8 +1345,20 @@ function updatePhaseButtons() {
 // Event listeners
 // ---------------------------------------------------------------------------
 document.getElementById('btn-step') .addEventListener('click', stepForward);
-document.getElementById('btn-reset').addEventListener('click', () => initGrid());
-document.getElementById('grid-size').addEventListener('change', () => initGrid());
+document.getElementById('btn-reset').addEventListener('click', () => { exitDrawMode(); initGrid(); });
+document.getElementById('grid-size').addEventListener('change', () => { if (drawMode) startDraw(); else initGrid(); });
+
+// Draw-your-own-grid
+document.getElementById('btn-draw').addEventListener('click', () => { if (drawMode) finishDraw(); else startDraw(); });
+document.getElementById('btn-brush-color').addEventListener('click', () => { drawColor = drawColor === 1 ? 0 : 1; refreshDrawLabels(); });
+document.getElementById('brush-size').addEventListener('input', e => {
+  brushSize = parseInt(e.target.value);
+  document.getElementById('brush-size-val').textContent = brushSize;
+});
+document.getElementById('btn-clear').addEventListener('click', () => { if (grid) { grid.fill(0); drawGrid(); } });
+canvas.addEventListener('mousedown', e => { if (!drawMode) return; painting = true; paintAt(e); e.preventDefault(); });
+canvas.addEventListener('mousemove', e => { if (drawMode && painting) paintAt(e); });
+window.addEventListener('mouseup', () => { painting = false; });
 
 document.querySelectorAll('.phase-btn').forEach(btn => {
   btn.addEventListener('click', () => {
