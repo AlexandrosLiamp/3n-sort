@@ -230,14 +230,14 @@
     border-radius: var(--radius-s);
   }
 
-  .seg .size-btn {
+  .seg .size-btn, .seg .mode-btn {
     border: none;
     background: transparent;
     border-radius: 6px;
     padding: 5px 11px;
   }
 
-  .seg .size-btn:hover { background: rgba(255,255,255,0.05); }
+  .seg .size-btn:hover, .seg .mode-btn:hover { background: rgba(255,255,255,0.05); }
 
   .spacer { flex: 1 1 auto; min-width: 4px; }
 
@@ -273,11 +273,13 @@
   .btn.primary:hover { filter: brightness(1.05); border-color: var(--accent); }
   .btn:disabled { opacity: 0.34; cursor: not-allowed; transform: none; }
 
-  .size-btn.active {
+  .size-btn.active, .mode-btn.active {
     background: rgba(231,205,131,0.16);
     color: var(--accent);
     box-shadow: inset 0 0 0 1px rgba(231,205,131,0.45);
   }
+
+  .mode-btn.active:disabled { opacity: 1; }
 
   input[type="number"] {
     font-family: var(--mono);
@@ -712,9 +714,10 @@
         <input type="number" id="grid-size" min="16" max="256" value="81">
         <span class="spacer"></span>
         <span class="ctl-label" data-i18n="frameLabel">Πλαίσιο:</span>
-        <button class="btn ghost" id="btn-reset" data-i18n="randomGrid">Τυχαίο</button>
-        <span class="ctl-label">/</span>
-        <button class="btn ghost" id="btn-draw" disabled>Σχεδίασε</button>
+        <div class="seg">
+          <button class="btn mode-btn" id="btn-reset" data-i18n="randomGrid">Τυχαίο</button>
+          <button class="btn mode-btn" id="btn-draw" disabled>Σχεδίασε</button>
+        </div>
       </div>
       <div class="control-row">
         <span class="ctl-label" data-i18n="jumpLabel">Φάση:</span>
@@ -1291,6 +1294,7 @@ function startDraw() {
 
   refreshDrawLabels();
   updateSizeButtons();
+  updateModeButtons();
   drawGrid();
 }
 
@@ -1587,6 +1591,7 @@ function updateUI() {
   }
 
   updateSizeButtons();
+  updateModeButtons();
 }
 
 function updatePhaseButtons() {
@@ -1616,6 +1621,12 @@ function updatePhaseButtons() {
 function updateSizeButtons() {
   document.querySelectorAll('.size-btn').forEach(b =>
     b.classList.toggle('active', parseInt(b.dataset.size) === logicalN));
+}
+
+// Highlight the chosen grid source: Σχεδίασε while drawing, else Τυχαίο.
+function updateModeButtons() {
+  document.getElementById('btn-reset').classList.toggle('active', !drawMode);
+  document.getElementById('btn-draw').classList.toggle('active', drawMode);
 }
 
 // Apply a preset size: re-blank in draw mode, else regenerate a random grid.
