@@ -595,6 +595,38 @@
     accent-color: var(--accent);
   }
 
+  /* ===================  ABOUT  =================== */
+  .about {
+    margin-top: 44px;
+    border-top: 1px solid var(--border);
+    padding-top: 32px;
+  }
+
+  .about h2 {
+    font-family: var(--serif);
+    font-size: 27px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--text);
+    margin-bottom: 14px;
+  }
+
+  .about h3 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 24px 0 8px;
+  }
+
+  .about p {
+    font-size: 13.5px;
+    line-height: 1.85;
+    color: var(--muted);
+    max-width: 680px;
+  }
+
   /* ===================  RESPONSIVE  =================== */
   @media (max-width: 760px) {
     .hero { padding: 56px 20px 36px; }
@@ -728,6 +760,7 @@
       <input type="range" id="brush-size" min="1" max="40" step="1" value="4">
       <span class="ctl-label" id="brush-size-val">4</span>
       <button class="btn ghost" id="btn-clear" data-i18n="clear">Καθαρισμός</button>
+      <button class="btn primary" id="btn-finish">Ολοκλήρωση</button>
     </div>
 
     <div class="phase-panel">
@@ -766,12 +799,23 @@
         <span data-i18n="legendBlock">Όριο block</span>
       </div>
       <div class="legend-item">
-        <div class="legend-swatch" style="background:transparent;border:1.5px solid #e27e7e"></div>
-        <span data-i18n="legendDirty">Dirty περιοχή</span>
+        <div class="legend-swatch" style="background:#e27e7e"></div>
+        <span data-i18n="legendDirty">Βρώμικη Περιοχή</span>
       </div>
     </div>
 
   </div>
+
+  <section class="about">
+    <h2 data-i18n="aboutTitle">Τι είναι το 3n-sort;</h2>
+    <p data-i18n="aboutWhat">Το 3n-sort (Schnorr &amp; Shamir, 1986) είναι ένας παράλληλος αλγόριθμος ταξινόμησης για ένα πλέγμα n×n επεξεργαστών, όπου κάθε επεξεργαστής επικοινωνεί μόνο με τους άμεσους γείτονές του. Ταξινομεί N = n² στοιχεία σε φιδίσια (snakelike) διάταξη χρησιμοποιώντας μόλις 3n + O(n¾) παράλληλα βήματα.</p>
+
+    <h3 data-i18n="aboutUniqueTitle">Γιατί είναι μοναδικό;</h3>
+    <p data-i18n="aboutUnique">Είναι ουσιαστικά βέλτιστο ως προς τον χρόνο για το μοντέλο του πλέγματος: πλησιάζει το θεωρητικό κάτω όριο των ~3n βημάτων (ακριβώς 3n − 2⌈√n⌉ − 3) που κανένας απλούστερος αλγόριθμος δεν πετυχαίνει. Για σύγκριση, το Shearsort χρειάζεται ~n·log n βήματα, ενώ εδώ ο κυρίαρχος σταθερός συντελεστής είναι μόλις 3.</p>
+
+    <h3 data-i18n="aboutHowTitle">Πώς λειτουργεί;</h3>
+    <p data-i18n="aboutHow">Ο αλγόριθμος εκτελεί 8 φάσεις. Το πλέγμα χωρίζεται σε blocks μεγέθους n¾ × n¾· μέσα από διαδοχικές ταξινομήσεις (blocks, στήλες, ζεύγη blocks, γραμμές) και ένα n¼-way unshuffle που μοιράζει τα δεδομένα ομοιόμορφα, κάθε φάση μειώνει αποδεδειγμένα τις βρώμικες (μη ταξινομημένες) γραμμές. Στο τέλος απομένει μια μικρή μη ταξινομημένη ζώνη που καθαρίζεται με odd-even transposition κατά μήκος του φιδιού σε μόλις O(n¾) βήματα.</p>
+  </section>
 
 </main>
 
@@ -844,8 +888,8 @@ const PHASES = [
              en: 'Performs 2·n¾ steps of odd-even transposition sort over the full n² snake.' }
   },
   { num: 'UNPAD',
-    title: { el: 'Unpadding — Εξαγωγή αρχικού πλέγματος',
-             en: 'Unpadding — Extract the original grid' },
+    title: { el: 'Unpadding — Επιστροφή πλέγματος στις αρχικές του διαστάσεις',
+             en: 'Unpadding — Return the grid to its original dimensions' },
     desc:  { el: 'Αφαιρούμε τα περιττά στοιχεία και επαναφέρουμε τον πίνακα στις αρχικές διαστάσεις του.',
              en: 'We remove the excess elements and restore the array to its original dimensions.' }
   }
@@ -863,7 +907,7 @@ const STRINGS = {
     jumpLabel:      'Φάση:',
     btnStep:        'Επόμενη Φάση',
     legendBlock:    'Όριο block',
-    legendDirty:    'Dirty περιοχή',
+    legendDirty:    'Βρώμικη Περιοχή',
     modalHint:      'Κλικ εκτός ή Esc για κλείσιμο',
     drawStart:      'Σχεδίασε',
     drawDone:       'Ολοκλήρωση',
@@ -878,7 +922,13 @@ const STRINGS = {
     readyDesc:      'Επιλέξτε μέγεθος πλέγματος και πατήστε Επόμενη Φάση.',
     readyDescPad:   (a, b) => `Μέγεθος ${a}×${a} — padding σε ${b}×${b}. Πατήστε P ή Επόμενη Φάση.`,
     computingTitle: 'Υπολογισμός…',
-    computingDesc:  'Αρχικοποίηση Web Workers — αναμονή ολοκλήρωσης.'
+    computingDesc:  'Αρχικοποίηση Web Workers — αναμονή ολοκλήρωσης.',
+    aboutTitle:       'Τι είναι το 3n-sort;',
+    aboutWhat:        'Το 3n-sort (Schnorr & Shamir, 1986) είναι ένας παράλληλος αλγόριθμος ταξινόμησης για ένα πλέγμα n×n επεξεργαστών, όπου κάθε επεξεργαστής επικοινωνεί μόνο με τους άμεσους γείτονές του. Ταξινομεί N = n² στοιχεία σε φιδίσια (snakelike) διάταξη χρησιμοποιώντας μόλις 3n + O(n¾) παράλληλα βήματα.',
+    aboutUniqueTitle: 'Γιατί είναι μοναδικό;',
+    aboutUnique:      'Είναι ουσιαστικά βέλτιστο ως προς τον χρόνο για το μοντέλο του πλέγματος: πλησιάζει το θεωρητικό κάτω όριο των ~3n βημάτων (ακριβώς 3n − 2⌈√n⌉ − 3) που κανένας απλούστερος αλγόριθμος δεν πετυχαίνει. Για σύγκριση, το Shearsort χρειάζεται ~n·log n βήματα, ενώ εδώ ο κυρίαρχος σταθερός συντελεστής είναι μόλις 3.',
+    aboutHowTitle:    'Πώς λειτουργεί;',
+    aboutHow:         'Ο αλγόριθμος εκτελεί 8 φάσεις. Το πλέγμα χωρίζεται σε blocks μεγέθους n¾ × n¾· μέσα από διαδοχικές ταξινομήσεις (blocks, στήλες, ζεύγη blocks, γραμμές) και ένα n¼-way unshuffle που μοιράζει τα δεδομένα ομοιόμορφα, κάθε φάση μειώνει αποδεδειγμένα τις βρώμικες (μη ταξινομημένες) γραμμές. Στο τέλος απομένει μια μικρή μη ταξινομημένη ζώνη που καθαρίζεται με odd-even transposition κατά μήκος του φιδιού σε μόλις O(n¾) βήματα.'
   },
   en: {
     heroEyebrow:    'Interactive Algorithm Presentation',
@@ -902,7 +952,13 @@ const STRINGS = {
     readyDesc:      'Choose a grid size and press Next Phase.',
     readyDescPad:   (a, b) => `Size ${a}×${a} — padding to ${b}×${b}. Press P or Next Phase.`,
     computingTitle: 'Computing…',
-    computingDesc:  'Initialising Web Workers — please wait.'
+    computingDesc:  'Initialising Web Workers — please wait.',
+    aboutTitle:       'What is 3n-sort?',
+    aboutWhat:        '3n-sort (Schnorr & Shamir, 1986) is a parallel sorting algorithm for an n×n mesh of processors, where each processor communicates only with its immediate neighbours. It sorts N = n² elements into snakelike order using just 3n + O(n¾) parallel steps.',
+    aboutUniqueTitle: 'Why is it unique?',
+    aboutUnique:      'It is essentially time-optimal for the mesh model: it approaches the theoretical lower bound of ~3n steps (exactly 3n − 2⌈√n⌉ − 3) that no simpler algorithm achieves. For comparison, Shearsort needs ~n·log n steps, whereas here the leading constant is just 3.',
+    aboutHowTitle:    'How does it work?',
+    aboutHow:         'The algorithm runs 8 phases. The grid is split into n¾ × n¾ blocks; through successive sorts (blocks, columns, block pairs, rows) and an n¼-way unshuffle that spreads the data evenly, each phase provably reduces the number of dirty (unsorted) rows. By the end only a small unsorted zone remains, cleaned up with odd-even transposition along the snake in just O(n¾) steps.'
   }
 };
 
@@ -1243,7 +1299,8 @@ async function computeOps() {
 // Draw-your-own-grid (paint) mode
 // ---------------------------------------------------------------------------
 function refreshDrawLabels() {
-  document.getElementById('btn-draw').textContent = drawMode ? t('drawDone') : t('drawStart');
+  document.getElementById('btn-draw').textContent   = t('drawStart');
+  document.getElementById('btn-finish').textContent = t('drawDone');
   const cb = document.getElementById('btn-brush-color');
   cb.textContent     = drawColor === 1 ? t('colorWhite') : t('colorBlack');
   cb.style.background = drawColor === 1 ? '#e8eaf0' : '#0b0e14';
@@ -1261,6 +1318,7 @@ function startDraw() {
   document.getElementById('draw-toolbar').style.display = '';
   canvas.style.cursor = 'crosshair';
   document.getElementById('btn-step').disabled = true;
+  document.getElementById('btn-draw').disabled = true;
   document.querySelectorAll('.phase-btn').forEach(b => b.disabled = true);
 
   const badge = document.getElementById('phase-badge');
@@ -1289,6 +1347,7 @@ function exitDrawMode() {
   if (!drawMode) return;
   drawMode = false;
   document.getElementById('draw-toolbar').style.display = 'none';
+  document.getElementById('btn-draw').disabled = false;
   canvas.style.cursor = '';
   refreshDrawLabels();
 }
@@ -1614,7 +1673,8 @@ document.querySelectorAll('.size-btn').forEach(btn => {
 });
 
 // Draw-your-own-grid
-document.getElementById('btn-draw').addEventListener('click', () => { if (drawMode) finishDraw(); else startDraw(); });
+document.getElementById('btn-draw').addEventListener('click', () => { if (!drawMode) startDraw(); });
+document.getElementById('btn-finish').addEventListener('click', () => finishDraw());
 document.getElementById('btn-brush-color').addEventListener('click', () => { drawColor = drawColor === 1 ? 0 : 1; refreshDrawLabels(); });
 document.getElementById('brush-size').addEventListener('input', e => {
   brushSize = parseInt(e.target.value);
