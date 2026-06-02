@@ -19,24 +19,46 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,700;1,300;1,700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0b0e14;
-    --surface: #141820;
-    --surface2: #1c2230;
-    --border: rgba(255,255,255,0.07);
-    --border2: rgba(255,255,255,0.14);
-    --text: #e8eaf0;
-    --muted: #7a8299; 
-    --accent: #e2c97e;
-    --accent2: #6c9cdc;
-    --accent3: #7ecba1;
-    --red: #e27e7e;
-    --orange: #ff9a3c;
-    --purple: #a57ede;
-    --mono: 'DM Mono', monospace;
-    --serif: 'Fraunces', serif;
+    /* ---- Surfaces ---------------------------------------------------- */
+    --bg:        #0a0c12;
+    --bg2:       #0d1018;
+    --surface:   #12161f;
+    --surface2:  #1a2030;
+    --surface3:  #222a3d;
+    --border:    rgba(255,255,255,0.06);
+    --border2:   rgba(255,255,255,0.12);
+    --border3:   rgba(255,255,255,0.20);
+
+    /* ---- Text -------------------------------------------------------- */
+    --text:   #eef0f6;
+    --muted:  #8b93a9;
+    --faint:  #5c6479;
+
+    /* ---- Accents ----------------------------------------------------- */
+    --accent:    #e7cd83;   /* gold — primary */
+    --accent-dk: #d4b86a;
+    --accent2:   #7aa6e6;   /* blue — block boundary */
+    --accent3:   #84d3aa;   /* green — done */
+    --red:       #ec8a8a;   /* dirty region */
+    --orange:    #ff9a3c;
+    --purple:    #b48ce6;   /* computing */
+
+    /* ---- Type -------------------------------------------------------- */
+    --mono:  'DM Mono', ui-monospace, monospace;
+    --serif: 'Fraunces', Georgia, serif;
+
+    /* ---- Misc -------------------------------------------------------- */
+    --radius:   14px;
+    --radius-s: 8px;
+    --shadow:   0 1px 0 rgba(255,255,255,0.04) inset,
+                0 18px 50px -20px rgba(0,0,0,0.8),
+                0 6px 18px -10px rgba(0,0,0,0.6);
+    --ring:     0 0 0 3px rgba(231,205,131,0.22);
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { -webkit-text-size-adjust: 100%; }
 
   body {
     background: var(--bg);
@@ -44,168 +66,245 @@
     font-family: var(--mono);
     min-height: 100vh;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
+  /* Layered backdrop: grid texture + warm/cool glows */
   body::before {
     content: '';
     position: fixed;
     inset: 0;
     background-image:
-      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-    background-size: 40px 40px;
+      linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+    background-size: 38px 38px;
     pointer-events: none;
     z-index: 0;
+    mask-image: radial-gradient(ellipse 120% 80% at 50% 0%, #000 35%, transparent 100%);
   }
 
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(60% 45% at 50% -8%, rgba(231,205,131,0.10), transparent 60%),
+      radial-gradient(55% 40% at 88% 8%, rgba(122,166,230,0.08), transparent 65%);
+  }
+
+  /* ===================  HERO  =================== */
   .hero {
     position: relative;
     z-index: 1;
-    max-width: 900px;
+    max-width: 920px;
     margin: 0 auto;
-    padding: 64px 24px 40px;
+    padding: 72px 28px 44px;
     border-bottom: 1px solid var(--border);
   }
 
   .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
     font-family: var(--mono);
     font-size: 11px;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--accent);
-    margin-bottom: 16px;
+    margin-bottom: 22px;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    width: 26px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+  }
+
+  .hero-mark {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .hero-logo {
+    width: 76px;
+    height: 76px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 6px 22px rgba(231,205,131,0.18));
   }
 
   .hero h1 {
     font-family: var(--serif);
-    font-size: clamp(42px, 7vw, 72px);
+    font-size: clamp(44px, 7.5vw, 76px);
     font-weight: 700;
-    line-height: 1.0;
-    letter-spacing: -0.01em;
+    line-height: 0.98;
+    letter-spacing: -0.015em;
     color: var(--text);
-    margin-bottom: 16px;
   }
 
   .hero h1 em {
     font-style: italic;
     font-weight: 300;
-    color: var(--accent);
+    background: linear-gradient(120deg, var(--accent), #f2dca0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
-
-  .hero-mark { display: flex; align-items: center; gap: 18px; margin-bottom: 16px; }
-  .hero-mark h1 { margin-bottom: 0; }
-  .hero-logo { width: 72px; height: 72px; flex-shrink: 0; }
 
   .hero-sub {
-    font-size: 13px;
-    line-height: 1.8;
+    font-size: 13.5px;
+    line-height: 1.85;
     color: var(--muted);
-    max-width: 560px;
-    margin-bottom: 12px;
+    max-width: 580px;
   }
 
+  /* ===================  CONTENT / CARD  =================== */
   .content {
     position: relative;
     z-index: 1;
-    max-width: 900px;
+    max-width: 920px;
     margin: 0 auto;
-    padding: 32px 24px 80px;
+    padding: 36px 28px 96px;
   }
 
   .demo-card {
-    background: var(--surface);
+    background: linear-gradient(180deg, var(--surface), var(--bg2));
     border: 1px solid var(--border2);
-    border-radius: 12px;
+    border-radius: var(--radius);
     overflow: hidden;
+    box-shadow: var(--shadow);
   }
 
   .demo-header {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    padding: 14px 20px;
+    align-items: stretch;
+    padding: 16px 20px;
     border-bottom: 1px solid var(--border);
-    gap: 10px;
+    gap: 14px;
+    background: rgba(255,255,255,0.014);
   }
 
-  .demo-title {
-    font-size: 11px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .controls {
+  .control-row {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
     flex-wrap: nowrap;
     overflow-x: auto;
-    max-width: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border3) transparent;
   }
 
-  .controls > * { flex-shrink: 0; }
+  .control-row::-webkit-scrollbar { height: 6px; }
+  .control-row::-webkit-scrollbar-thumb { background: var(--border3); border-radius: 3px; }
 
-  .n-label {
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.06em;
+  .control-row > * { flex-shrink: 0; }
+
+  .ctl-label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-right: 2px;
   }
+
+  /* segmented preset-size group */
+  .seg {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-s);
+  }
+
+  .seg .size-btn {
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    padding: 5px 11px;
+  }
+
+  .seg .size-btn:hover { background: rgba(255,255,255,0.05); }
+
+  .spacer { flex: 1 1 auto; min-width: 4px; }
 
   .btn {
     font-family: var(--mono);
     font-size: 11px;
-    padding: 6px 12px;
-    border-radius: 6px;
+    padding: 7px 13px;
+    border-radius: var(--radius-s);
     border: 1px solid var(--border2);
-    background: transparent;
+    background: var(--surface2);
     color: var(--text);
     cursor: pointer;
     letter-spacing: 0.06em;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.05s;
   }
 
-  .btn:hover { background: var(--surface2); border-color: var(--muted); }
+  .btn:hover { background: var(--surface3); border-color: var(--border3); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible { outline: none; box-shadow: var(--ring); }
+
+  .btn.ghost { background: transparent; }
+  .btn.ghost:hover { background: var(--surface2); }
 
   .btn.primary {
-    background: var(--accent);
-    color: #0b0e14;
-    border-color: var(--accent);
+    background: linear-gradient(180deg, var(--accent), var(--accent-dk));
+    color: #14110a;
+    border-color: var(--accent-dk);
     font-weight: 500;
+    box-shadow: 0 6px 16px -8px rgba(231,205,131,0.6);
   }
 
-  .btn.primary:hover { background: #d4b86a; }
-  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn.primary:hover { filter: brightness(1.05); border-color: var(--accent); }
+  .btn:disabled { opacity: 0.34; cursor: not-allowed; transform: none; }
 
   .size-btn.active {
-    background: rgba(226,201,126,0.15);
-    border-color: var(--accent);
+    background: rgba(231,205,131,0.16);
     color: var(--accent);
+    box-shadow: inset 0 0 0 1px rgba(231,205,131,0.45);
   }
 
   input[type="number"] {
     font-family: var(--mono);
     font-size: 11px;
-    padding: 6px 10px;
-    border-radius: 6px;
+    padding: 7px 10px;
+    border-radius: var(--radius-s);
     border: 1px solid var(--border2);
-    background: var(--surface2);
+    background: var(--bg);
     color: var(--text);
-    cursor: pointer;
     outline: none;
-    width: 60px;
+    width: 62px;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
 
-  input[type="number"]:focus { border-color: var(--accent); }
+  input[type="number"]:focus { border-color: var(--accent); box-shadow: var(--ring); }
 
+  /* ===================  GRID CANVAS  =================== */
   .grid-wrap {
-    padding: 20px;
+    padding: 24px 20px;
     overflow-x: auto;
     border-bottom: 1px solid var(--border);
+    background:
+      radial-gradient(80% 80% at 50% 40%, rgba(255,255,255,0.018), transparent 70%);
   }
 
-  #grid-canvas { display: block; margin: 0 auto; cursor: zoom-in; }
+  #grid-canvas {
+    display: block;
+    margin: 0 auto;
+    cursor: zoom-in;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px var(--border2), 0 20px 50px -24px rgba(0,0,0,0.9);
+  }
 
+  /* ===================  LANGUAGE TOGGLE  =================== */
   .lang-toggle {
     position: fixed;
     top: 16px;
@@ -213,138 +312,114 @@
     z-index: 10;
     font-family: var(--mono);
     font-size: 11px;
-    padding: 6px 12px;
-    border-radius: 6px;
+    padding: 7px 13px;
+    border-radius: var(--radius-s);
     border: 1px solid var(--border2);
-    background: var(--surface);
+    background: rgba(18,22,31,0.82);
+    backdrop-filter: blur(8px);
     color: var(--text);
     cursor: pointer;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     transition: background 0.15s, border-color 0.15s;
   }
 
-  .lang-toggle:hover { background: var(--surface2); border-color: var(--muted); }
+  .lang-toggle:hover { background: var(--surface2); border-color: var(--border3); }
 
+  /* ===================  PHASE PANEL  =================== */
   .phase-panel {
     display: flex;
     align-items: flex-start;
-    gap: 16px;
-    padding: 16px 20px;
+    gap: 18px;
+    padding: 20px;
     border-bottom: 1px solid var(--border);
-    min-height: 80px;
+    min-height: 92px;
   }
 
   .phase-badge {
     flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    border-radius: 8px;
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
     background: var(--surface2);
     border: 1px solid var(--border2);
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: var(--serif);
-    font-size: 20px;
+    font-size: 22px;
     font-style: italic;
     font-weight: 700;
     color: var(--muted);
+    transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
   }
 
   .phase-badge.active {
-    background: rgba(226,201,126,0.12);
+    background: rgba(231,205,131,0.14);
     border-color: var(--accent);
     color: var(--accent);
+    box-shadow: 0 0 22px -6px rgba(231,205,131,0.4);
   }
 
   .phase-badge.done {
-    background: rgba(126,203,161,0.12);
+    background: rgba(132,211,170,0.14);
     border-color: var(--accent3);
     color: var(--accent3);
   }
 
   .phase-badge.computing {
-    background: rgba(165,126,222,0.12);
+    background: rgba(180,140,230,0.14);
     border-color: var(--purple);
     color: var(--purple);
-    animation: pulse 1s ease-in-out infinite;
+    animation: pulse 1.1s ease-in-out infinite;
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.4; }
+    0%, 100% { opacity: 1;   box-shadow: 0 0 0 0 rgba(180,140,230,0.0); }
+    50%      { opacity: 0.55; box-shadow: 0 0 26px -4px rgba(180,140,230,0.5); }
   }
 
-  .phase-info { flex: 1; }
+  .phase-info { flex: 1; min-width: 0; }
 
   .phase-title-text {
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 500;
     color: var(--text);
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
   }
 
   .phase-desc-text {
-    font-size: 12px;
-    line-height: 1.75;
+    font-size: 12.5px;
+    line-height: 1.78;
     color: var(--muted);
   }
 
+  /* progress track (was vertical dots) */
   .phase-dots-col {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding-top: 2px;
+    gap: 5px;
+    padding-top: 4px;
     flex-shrink: 0;
   }
 
   .phase-dot {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--border2);
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
   }
 
   .phase-dot.done    { background: var(--accent3); }
-  .phase-dot.current { background: var(--accent); }
-
-  .step-indicator {
-    padding: 10px 20px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    flex-wrap: wrap;
+  .phase-dot.current {
+    background: var(--accent);
+    transform: scale(1.35);
+    box-shadow: 0 0 10px -1px rgba(231,205,131,0.7);
   }
 
-  .step-badge {
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .step-badge strong { color: var(--accent); font-weight: 500; }
-
-  .legend {
-    display: flex;
-    gap: 16px;
-    padding: 10px 20px;
-    flex-wrap: wrap;
-  }
-
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 10px;
-    color: var(--muted);
-  }
-
-  .legend-swatch { width: 12px; height: 12px; border-radius: 2px; }
-
+  /* ===================  PHASE STEPPER (jump row)  =================== */
   .phase-jump-row {
     display: flex;
     gap: 4px;
@@ -352,71 +427,87 @@
     flex-wrap: nowrap;
   }
 
-  .phase-jump-label {
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-right: 4px;
-  }
-
   .phase-btn {
     font-family: var(--mono);
     font-size: 10px;
-    width: 26px;
-    height: 26px;
-    border-radius: 5px;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
     border: 1px solid var(--border2);
-    background: transparent;
+    background: var(--surface2);
     color: var(--muted);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.05s;
   }
 
   .phase-btn:hover {
-    background: var(--surface2);
+    background: var(--surface3);
     border-color: var(--accent2);
     color: var(--accent2);
   }
 
+  .phase-btn:active { transform: translateY(1px); }
+  .phase-btn:focus-visible { outline: none; box-shadow: var(--ring); }
+
   .phase-btn.active {
-    background: rgba(226,201,126,0.15);
+    background: rgba(231,205,131,0.16);
     border-color: var(--accent);
     color: var(--accent);
+    box-shadow: inset 0 0 0 1px rgba(231,205,131,0.4);
   }
 
   .phase-btn.done {
-    background: rgba(126,203,161,0.12);
+    background: rgba(132,211,170,0.13);
     border-color: var(--accent3);
     color: var(--accent3);
   }
 
-  .phase-btn:disabled {
-    opacity: 0.25;
-    cursor: not-allowed;
+  .phase-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+  /* ===================  LEGEND  =================== */
+  .legend {
+    display: flex;
+    gap: 10px;
+    padding: 14px 20px;
+    flex-wrap: wrap;
   }
 
-  /* Click-to-expand grid modal (lightbox) */
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+
+  .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ===================  GRID MODAL (lightbox)  =================== */
   .grid-modal {
     position: fixed;
     inset: 0;
     z-index: 50;
     display: none;
     overflow: auto;
-    background: rgba(5,7,11,0.92);
-    backdrop-filter: blur(3px);
+    background: rgba(5,7,11,0.93);
+    backdrop-filter: blur(4px);
   }
 
   .grid-modal.open { display: flex; }
 
   #modal-canvas {
-    margin: auto;                 /* centres when it fits; keeps all edges scrollable when it overflows */
+    margin: auto;
     image-rendering: pixelated;
-    box-shadow: 0 10px 50px rgba(0,0,0,0.6);
-    border-radius: 4px;
+    box-shadow: 0 10px 60px rgba(0,0,0,0.7);
+    border-radius: 6px;
     cursor: zoom-out;
   }
 
@@ -425,22 +516,23 @@
     top: 16px;
     right: 16px;
     z-index: 51;
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     font-size: 22px;
     line-height: 1;
-    border-radius: 8px;
+    border-radius: 10px;
     border: 1px solid var(--border2);
     background: var(--surface);
     color: var(--text);
     cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
   }
 
-  .grid-modal-close:hover { background: var(--surface2); border-color: var(--muted); }
+  .grid-modal-close:hover { background: var(--surface2); border-color: var(--border3); }
 
   .grid-modal-hint {
     position: fixed;
-    bottom: 16px;
+    bottom: 18px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 51;
@@ -451,16 +543,53 @@
     pointer-events: none;
   }
 
+  /* ===================  DRAW TOOLBAR  =================== */
   .draw-toolbar {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
     flex-wrap: wrap;
-    padding: 10px 20px;
+    padding: 12px 20px;
     border-bottom: 1px solid var(--border);
+    background: rgba(180,140,230,0.05);
   }
 
-  .draw-toolbar input[type="range"] { width: 130px; cursor: pointer; accent-color: var(--accent); }
+  .draw-toolbar input[type="range"] {
+    width: 130px;
+    cursor: pointer;
+    accent-color: var(--accent);
+  }
+
+  /* ===================  RESPONSIVE  =================== */
+  @media (max-width: 760px) {
+    .hero { padding: 56px 20px 36px; }
+    .content { padding: 28px 16px 80px; }
+    .hero-mark { gap: 14px; }
+    .hero-logo { width: 60px; height: 60px; }
+    .demo-header { padding: 14px 14px; }
+    .grid-wrap { padding: 18px 12px; }
+    .phase-panel { padding: 16px 14px; gap: 14px; }
+    .legend { padding: 12px 14px; }
+
+    /* let control rows wrap instead of scroll on small screens */
+    .control-row { flex-wrap: wrap; overflow-x: visible; }
+    .phase-jump-row { flex-wrap: wrap; }
+    .spacer { display: none; }
+  }
+
+  @media (max-width: 480px) {
+    .hero { padding: 48px 16px 32px; }
+    .hero-eyebrow { font-size: 10px; letter-spacing: 0.18em; margin-bottom: 16px; }
+    .hero-sub { font-size: 12.5px; }
+    .phase-badge { width: 44px; height: 44px; font-size: 19px; }
+    .phase-title-text, .phase-desc-text { font-size: 12px; }
+    .lang-toggle { top: 12px; right: 12px; padding: 6px 11px; }
+    .btn { padding: 7px 11px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -505,17 +634,20 @@
   <div class="demo-card">
 
     <div class="demo-header">
-      <div class="controls">
-        <span class="n-label" data-i18n="gridSize">Μέγεθος:</span>
-        <button class="btn size-btn" data-size="16">16</button>
-        <button class="btn size-btn" data-size="81">81</button>
-        <button class="btn size-btn" data-size="256">256</button>
+      <div class="control-row">
+        <span class="ctl-label" data-i18n="gridSize">Μέγεθος:</span>
+        <div class="seg">
+          <button class="btn size-btn" data-size="16">16</button>
+          <button class="btn size-btn" data-size="81">81</button>
+          <button class="btn size-btn" data-size="256">256</button>
+        </div>
         <input type="number" id="grid-size" min="16" max="256" value="81">
-        <button class="btn" id="btn-reset">Reset</button>
-        <button class="btn" id="btn-draw" disabled>Σχεδίαση</button>
+        <span class="spacer"></span>
+        <button class="btn ghost" id="btn-reset">Reset</button>
+        <button class="btn ghost" id="btn-draw" disabled>Σχεδίαση</button>
       </div>
-      <div class="controls">
-        <span class="phase-jump-label" data-i18n="jumpLabel">Φάση:</span>
+      <div class="control-row">
+        <span class="ctl-label" data-i18n="jumpLabel">Φάση:</span>
         <div class="phase-jump-row">
           <button class="phase-btn" data-phase="0">0</button>
           <button class="phase-btn" id="phase-btn-pad" data-phase="PAD" style="display:none">P</button>
@@ -529,16 +661,17 @@
           <button class="phase-btn" data-phase="8">8</button>
           <button class="phase-btn" id="phase-btn-unpad" data-phase="UNPAD" style="display:none">U</button>
         </div>
+        <span class="spacer"></span>
         <button class="btn primary" id="btn-step" data-i18n="btnStep">Επόμενη Φάση</button>
       </div>
     </div>
 
     <div class="draw-toolbar" id="draw-toolbar" style="display:none">
       <button class="btn" id="btn-brush-color">Λευκό</button>
-      <span class="n-label" data-i18n="sizeLabel">Μέγεθος</span>
+      <span class="ctl-label" data-i18n="sizeLabel">Μέγεθος</span>
       <input type="range" id="brush-size" min="1" max="40" step="1" value="4">
-      <span class="n-label" id="brush-size-val">4</span>
-      <button class="btn" id="btn-clear" data-i18n="clear">Καθαρισμός</button>
+      <span class="ctl-label" id="brush-size-val">4</span>
+      <button class="btn ghost" id="btn-clear" data-i18n="clear">Καθαρισμός</button>
     </div>
 
     <div class="phase-panel">
