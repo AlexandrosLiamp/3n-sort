@@ -14,6 +14,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>3n-sort — Παράλληλη Οπτικοποίηση (Web Workers)</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20128%20128%22%20width%3D%22128%22%20height%3D%22128%22%20role%3D%22img%22%20aria-label%3D%223n-sort%20logo%22%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%22120%22%20height%3D%22120%22%20rx%3D%2226%22%20fill%3D%22%230b0e14%22%20stroke%3D%22%23e2c97e%22%20stroke-opacity%3D%220.45%22%20stroke-width%3D%222%22%2F%3E%3Cpolyline%20fill%3D%22none%22%20stroke%3D%22%23e2c97e%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-opacity%3D%220.9%22%20points%3D%2230%2C30%20102%2C30%20102%2C54%2030%2C54%2030%2C78%20102%2C78%20102%2C102%2030%2C102%22%2F%3E%3Cg%20stroke%3D%22%233a4252%22%20stroke-width%3D%220.75%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%23121212%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%23202020%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%232f2f2f%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%233d3d3d%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%234b4b4b%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%235a5a5a%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%23686868%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%23767676%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23848484%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23939393%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23a1a1a1%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23afafaf%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23bdbdbd%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23cccccc%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23dadada%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23e8e8e8%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,700;1,300;1,700&display=swap" rel="stylesheet">
 <style>
@@ -90,6 +91,10 @@
     font-weight: 300;
     color: var(--accent);
   }
+
+  .hero-mark { display: flex; align-items: center; gap: 18px; margin-bottom: 16px; }
+  .hero-mark h1 { margin-bottom: 0; }
+  .hero-logo { width: 72px; height: 72px; flex-shrink: 0; }
 
   .hero-sub {
     font-size: 13px;
@@ -168,6 +173,12 @@
 
   .btn.primary:hover { background: #d4b86a; }
   .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .size-btn.active {
+    background: rgba(226,201,126,0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
 
   input[type="number"] {
     font-family: var(--mono);
@@ -455,7 +466,32 @@
 
 <header class="hero">
   <p class="hero-eyebrow" data-i18n="heroEyebrow">Παράλληλη Οπτικοποίηση </p>
-  <h1><em>3n</em>-sort</h1>
+  <div class="hero-mark">
+    <svg class="hero-logo" viewBox="0 0 128 128" role="img" aria-label="3n-sort logo">
+      <rect x="4" y="4" width="120" height="120" rx="26" fill="#0b0e14" stroke="#e2c97e" stroke-opacity="0.45" stroke-width="2"/>
+      <polyline fill="none" stroke="#e2c97e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.9"
+        points="30,30 102,30 102,54 30,54 30,78 102,78 102,102 30,102"/>
+      <g stroke="#3a4252" stroke-width="0.75">
+        <circle cx="30"  cy="30"  r="7" fill="#121212"/>
+        <circle cx="54"  cy="30"  r="7" fill="#202020"/>
+        <circle cx="78"  cy="30"  r="7" fill="#2f2f2f"/>
+        <circle cx="102" cy="30"  r="7" fill="#3d3d3d"/>
+        <circle cx="102" cy="54"  r="7" fill="#4b4b4b"/>
+        <circle cx="78"  cy="54"  r="7" fill="#5a5a5a"/>
+        <circle cx="54"  cy="54"  r="7" fill="#686868"/>
+        <circle cx="30"  cy="54"  r="7" fill="#767676"/>
+        <circle cx="30"  cy="78"  r="7" fill="#848484"/>
+        <circle cx="54"  cy="78"  r="7" fill="#939393"/>
+        <circle cx="78"  cy="78"  r="7" fill="#a1a1a1"/>
+        <circle cx="102" cy="78"  r="7" fill="#afafaf"/>
+        <circle cx="102" cy="102" r="7" fill="#bdbdbd"/>
+        <circle cx="78"  cy="102" r="7" fill="#cccccc"/>
+        <circle cx="54"  cy="102" r="7" fill="#dadada"/>
+        <circle cx="30"  cy="102" r="7" fill="#e8e8e8"/>
+      </g>
+    </svg>
+    <h1><em>3n</em>-sort</h1>
+  </div>
   <p class="hero-sub" data-i18n="heroSub">
     Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n&times;n επεξεργαστών.
   </p>
@@ -467,7 +503,10 @@
 
     <div class="demo-header">
       <div class="controls">
-        <span class="n-label">n =</span>
+        <span class="n-label" data-i18n="gridSize">Μέγεθος:</span>
+        <button class="btn size-btn" data-size="16">16</button>
+        <button class="btn size-btn" data-size="81">81</button>
+        <button class="btn size-btn" data-size="256">256</button>
         <input type="number" id="grid-size" min="16" max="256" value="81">
         <button class="btn" id="btn-reset">Reset</button>
         <button class="btn" id="btn-draw" disabled>Σχεδίαση</button>
@@ -626,6 +665,7 @@ const STRINGS = {
   el: {
     heroEyebrow:    'Παράλληλη Οπτικοποίηση',
     heroSub:        'Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n×n επεξεργαστών.',
+    gridSize:       'Μέγεθος:',
     jumpLabel:      'Φάση:',
     btnStep:        'Επόμενη Φάση',
     legendBlock:    'Όριο block',
@@ -649,6 +689,7 @@ const STRINGS = {
   en: {
     heroEyebrow:    'Parallel Visualization',
     heroSub:        'Parallel sorting algorithm for an n×n mesh of processors.',
+    gridSize:       'Size:',
     jumpLabel:      'Phase:',
     btnStep:        'Next Phase',
     legendBlock:    'Block boundary',
@@ -980,7 +1021,7 @@ async function computeOps() {
   document.getElementById('btn-step').disabled  = true;
   document.getElementById('btn-reset').disabled = true;
   document.getElementById('btn-draw').disabled  = true;
-  document.querySelectorAll('.phase-btn').forEach(b => b.disabled = true);
+  document.querySelectorAll('.phase-btn, .size-btn').forEach(b => b.disabled = true);
 
   const badge = document.getElementById('phase-badge');
   badge.className   = 'phase-badge computing';
@@ -996,6 +1037,7 @@ async function computeOps() {
   document.getElementById('btn-step').disabled  = false;
   document.getElementById('btn-reset').disabled = false;
   document.getElementById('btn-draw').disabled  = false;
+  document.querySelectorAll('.size-btn').forEach(b => b.disabled = false);
 
   updateUI();
   updatePhaseButtons();
@@ -1033,6 +1075,7 @@ function startDraw() {
   document.getElementById('phase-desc-text').textContent  = t('drawHint');
 
   refreshDrawLabels();
+  updateSizeButtons();
   drawGrid();
 }
 
@@ -1324,6 +1367,8 @@ function updateUI() {
     if (dotIdx < curIdx)            dot.classList.add('done');
     else if (i === currentPhaseNum) dot.classList.add('current');
   }
+
+  updateSizeButtons();
 }
 
 function updatePhaseButtons() {
@@ -1349,12 +1394,29 @@ function updatePhaseButtons() {
   });
 }
 
+// Highlight the preset size button matching the current size (none for custom n).
+function updateSizeButtons() {
+  document.querySelectorAll('.size-btn').forEach(b =>
+    b.classList.toggle('active', parseInt(b.dataset.size) === logicalN));
+}
+
+// Apply a preset size: re-blank in draw mode, else regenerate a random grid.
+function applySize(n) {
+  document.getElementById('grid-size').value = n;
+  if (drawMode) startDraw();
+  else initGrid();
+}
+
 // ---------------------------------------------------------------------------
 // Event listeners
 // ---------------------------------------------------------------------------
 document.getElementById('btn-step') .addEventListener('click', stepForward);
 document.getElementById('btn-reset').addEventListener('click', () => { exitDrawMode(); initGrid(); });
 document.getElementById('grid-size').addEventListener('change', () => { if (drawMode) startDraw(); else initGrid(); });
+
+document.querySelectorAll('.size-btn').forEach(btn => {
+  btn.addEventListener('click', () => applySize(parseInt(btn.dataset.size)));
+});
 
 // Draw-your-own-grid
 document.getElementById('btn-draw').addEventListener('click', () => { if (drawMode) finishDraw(); else startDraw(); });
