@@ -642,7 +642,7 @@ const STRINGS = {
     readyDesc:      'Επιλέξτε μέγεθος πλέγματος και πατήστε Επόμενη Φάση.',
     readyDescPad:   (a, b) => `Μέγεθος ${a}×${a} — padding σε ${b}×${b}. Πατήστε P ή Επόμενη Φάση.`,
     computingTitle: 'Υπολογισμός…',
-    computingDesc:  (w) => `Αρχικοποιούνται ${w} Web Workers — αναμονή ολοκλήρωσης.`,
+    computingDesc:  'Αρχικοποίηση Web Workers — αναμονή ολοκλήρωσης.',
     langBtn:        'EN'
   },
   en: {
@@ -665,7 +665,7 @@ const STRINGS = {
     readyDesc:      'Choose a grid size and press Next Phase.',
     readyDescPad:   (a, b) => `Size ${a}×${a} — padding to ${b}×${b}. Press P or Next Phase.`,
     computingTitle: 'Computing…',
-    computingDesc:  (w) => `Initialising ${w} Web Workers — please wait.`,
+    computingDesc:  'Initialising Web Workers — please wait.',
     langBtn:        'ΕΛ'
   }
 };
@@ -987,7 +987,7 @@ async function computeOps() {
   badge.className   = 'phase-badge computing';
   badge.textContent = '⋯';
   document.getElementById('phase-title-text').textContent = t('computingTitle');
-  document.getElementById('phase-desc-text').textContent  = t('computingDesc')(N_WORKERS);
+  document.getElementById('phase-desc-text').textContent  = t('computingDesc');
 
   drawGrid();
 
@@ -1062,13 +1062,21 @@ function paintAt(e) {
   const cx   = Math.floor((e.clientX - rect.left) / cw);
   const cy   = Math.floor((e.clientY - rect.top)  / ch);
   const r    = Math.floor(brushSize / 2);
+
+  // Incremental render: paint only the brush cells directly (O(brush²)) instead
+  // of redrawing the whole N×N grid each mousemove — avoids cursor lag at n=256.
+  // Block boundaries are restored by a full drawGrid() on mouseup.
+  const cell = Math.max(1, Math.floor(Math.min(560, window.innerWidth - 48) / N));
+  const dpr  = window.devicePixelRatio || 1;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = drawColor === 1 ? '#e8eaf0' : '#0b0e14';
   for (let dy = -r; dy <= r; dy++)
     for (let dx = -r; dx <= r; dx++) {
       const x = cx + dx, y = cy + dy;
       if (x < 0 || x >= N || y < 0 || y >= N) continue;
       grid[y * N + x] = drawColor;
+      ctx.fillRect(x * cell, y * cell, cell, cell);
     }
-  drawGrid();
 }
 
 // ---------------------------------------------------------------------------
@@ -1358,7 +1366,7 @@ document.getElementById('brush-size').addEventListener('input', e => {
 document.getElementById('btn-clear').addEventListener('click', () => { if (grid) { grid.fill(0); drawGrid(); } });
 canvas.addEventListener('mousedown', e => { if (!drawMode) return; painting = true; paintAt(e); e.preventDefault(); });
 canvas.addEventListener('mousemove', e => { if (drawMode && painting) paintAt(e); });
-window.addEventListener('mouseup', () => { painting = false; });
+window.addEventListener('mouseup', () => { if (painting && drawMode) drawGrid(); painting = false; });
 
 document.querySelectorAll('.phase-btn').forEach(btn => {
   btn.addEventListener('click', () => {
