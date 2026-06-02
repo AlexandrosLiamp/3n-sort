@@ -295,6 +295,29 @@
 
   input[type="number"]:focus { border-color: var(--accent); box-shadow: var(--ring); }
 
+  /* custom-size input sitting inside the size segment */
+  .seg input[type="number"] {
+    border: none;
+    border-left: 1px solid var(--border2);
+    background: transparent;
+    border-radius: 0 6px 6px 0;
+    padding: 5px 8px;
+    width: 52px;
+    margin-left: 2px;
+    transition: background 0.15s, box-shadow 0.15s;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  .seg input[type="number"]::-webkit-outer-spin-button,
+  .seg input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  .seg input[type="number"].active {
+    background: rgba(231,205,131,0.16);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px rgba(231,205,131,0.45);
+  }
+
   /* ===================  GRID CANVAS  =================== */
   .grid-wrap {
     padding: 24px 20px;
@@ -709,8 +732,8 @@
           <button class="btn size-btn" data-size="16">16</button>
           <button class="btn size-btn" data-size="81">81</button>
           <button class="btn size-btn" data-size="256">256</button>
+          <input type="number" id="grid-size" min="16" max="256" value="81">
         </div>
-        <input type="number" id="grid-size" min="16" max="256" value="81">
         <span class="spacer"></span>
         <span class="ctl-label" data-i18n="frameLabel">Πλαίσιο:</span>
         <div class="seg">
@@ -1623,6 +1646,7 @@ function updatePhaseButtons() {
 function updateSizeButtons() {
   document.querySelectorAll('.size-btn').forEach(b =>
     b.classList.toggle('active', parseInt(b.dataset.size) === logicalN));
+  document.getElementById('grid-size').classList.toggle('active', !VALID_SIZES.includes(logicalN));
 }
 
 // Highlight the chosen grid source: Σχεδίασε while drawing, else Τυχαίο.
