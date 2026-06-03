@@ -643,6 +643,11 @@
     pointer-events: none;
   }
 
+  /* Tooltip wrapper — lets a hover tip show even when the inner button is
+     disabled (disabled buttons don't fire mouse events, so the wrapper does). */
+  .tipwrap { display: inline-flex; }
+  .tipwrap > button:disabled { pointer-events: none; }
+
   /* ===================  DRAW TOOLBAR  =================== */
   .draw-toolbar {
     display: flex;
@@ -800,10 +805,10 @@
         </div>
         <button class="btn" id="btn-prev" data-i18n="btnPrev">‹ Προηγούμενη</button>
         <button class="btn primary" id="btn-step" data-i18n="btnStep">Επόμενη Φάση</button>
-        <button class="btn" id="btn-play" data-i18n="btnPlay">▶ Αναπαραγωγή</button>
-        <button class="btn" id="btn-play-all" data-i18n="btnPlayAll">▶▶ Όλα</button>
-        <button class="btn" id="btn-pause" data-i18n="btnPause">⏸ Παύση</button>
-        <button class="btn" id="btn-stop" data-i18n="btnStop">⏹</button>
+        <span class="tipwrap" data-tip="tipPlay"><button class="btn" id="btn-play" data-i18n="btnPlay">▶ Αναπαραγωγή</button></span>
+        <span class="tipwrap" data-tip="tipPlayAll"><button class="btn" id="btn-play-all" data-i18n="btnPlayAll">▶▶ Όλα</button></span>
+        <span class="tipwrap" data-tip="tipPause"><button class="btn" id="btn-pause" data-i18n="btnPause">⏸ Παύση</button></span>
+        <span class="tipwrap" data-tip="tipStop"><button class="btn" id="btn-stop" data-i18n="btnStop">⏹</button></span>
         <span class="spacer"></span>
       </div>
     </div>
@@ -872,10 +877,10 @@
   <div class="modal-controls" id="modal-controls">
     <button class="mbtn" id="mbtn-prev">&lsaquo;</button>
     <button class="mbtn" id="mbtn-next">&rsaquo;</button>
-    <button class="mbtn" id="mbtn-play">&#9654;</button>
-    <button class="mbtn" id="mbtn-play-all">&#9654;&#9654;</button>
-    <button class="mbtn" id="mbtn-pause">&#9208;</button>
-    <button class="mbtn" id="mbtn-stop">&#9209;</button>
+    <span class="tipwrap" data-tip="tipPlay"><button class="mbtn" id="mbtn-play">&#9654;</button></span>
+    <span class="tipwrap" data-tip="tipPlayAll"><button class="mbtn" id="mbtn-play-all">&#9654;&#9654;</button></span>
+    <span class="tipwrap" data-tip="tipPause"><button class="mbtn" id="mbtn-pause">&#9208;</button></span>
+    <span class="tipwrap" data-tip="tipStop"><button class="mbtn" id="mbtn-stop">&#9209;</button></span>
   </div>
   <div class="grid-modal-hint" data-i18n="modalHint">Κλικ εκτός ή Esc για κλείσιμο</div>
 </div>
@@ -998,6 +1003,7 @@ const STRINGS = {
     tipPlay:        'Αναπαραγωγή της τρέχουσας φάσης σε πραγματικό χρόνο',
     tipPlayAll:     'Αναπαραγωγή όλης της ακολουθίας από την αρχή ως το τέλος',
     tipPause:       'Παύση ή συνέχεια της αναπαραγωγής',
+    tipStop:        'Διακοπή και επιστροφή στην αρχή',
     tipColor:       'Εμφάνιση/απόκρυψη χρωμάτων που δείχνουν το unshuffle (Φάσεις 1–2)',
     tipBrushColor:  'Εναλλαγή χρώματος πινέλου (λευκό/μαύρο)',
     tipBrushSize:   'Μέγεθος πινέλου',
@@ -1047,6 +1053,7 @@ const STRINGS = {
     tipPlay:        'Play the current phase in real time',
     tipPlayAll:     'Play the whole sequence from start to finish',
     tipPause:       'Pause or resume playback',
+    tipStop:        'Stop and rewind to the start',
     tipColor:       'Show/hide the colours that visualise the unshuffle (Phases 1–2)',
     tipBrushColor:  'Toggle brush colour (white/black)',
     tipBrushSize:   'Brush size',
