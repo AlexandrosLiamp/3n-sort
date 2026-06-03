@@ -803,6 +803,7 @@
         <button class="btn" id="btn-play" data-i18n="btnPlay">▶ Αναπαραγωγή</button>
         <button class="btn" id="btn-play-all" data-i18n="btnPlayAll">▶▶ Όλα</button>
         <button class="btn" id="btn-pause" data-i18n="btnPause">⏸ Παύση</button>
+        <button class="btn" id="btn-stop" data-i18n="btnStop">⏹</button>
         <span class="spacer"></span>
       </div>
     </div>
@@ -874,6 +875,7 @@
     <button class="mbtn" id="mbtn-play">&#9654;</button>
     <button class="mbtn" id="mbtn-play-all">&#9654;&#9654;</button>
     <button class="mbtn" id="mbtn-pause">&#9208;</button>
+    <button class="mbtn" id="mbtn-stop">&#9209;</button>
   </div>
   <div class="grid-modal-hint" data-i18n="modalHint">Κλικ εκτός ή Esc για κλείσιμο</div>
 </div>
@@ -963,7 +965,7 @@ const STRINGS = {
     jumpLabel:      'Φάση:',
     btnStep:        'Επόμενη Φάση',
     btnPlay:        '▶',
-    btnStop:        '⏸ Διακοπή',
+    btnStop:        '⏹',
     btnPlayAll:     '▶▶',
     btnPrev:        '‹ Προηγούμενη',
     btnPause:       '⏸',
@@ -1012,7 +1014,7 @@ const STRINGS = {
     jumpLabel:      'Phase:',
     btnStep:        'Next Phase',
     btnPlay:        '▶',
-    btnStop:        '⏸ Stop',
+    btnStop:        '⏹',
     btnPlayAll:     '▶▶',
     btnPrev:        '‹ Previous',
     btnPause:       '⏸',
@@ -1619,6 +1621,7 @@ const CTRL_IDS = {
   play:    ['btn-play', 'mbtn-play'],
   playall: ['btn-play-all', 'mbtn-play-all'],
   pause:   ['btn-pause', 'mbtn-pause'],
+  stop:    ['btn-stop', 'mbtn-stop'],
 };
 function setCtl(name, disabled) {
   for (const id of CTRL_IDS[name]) { const e = document.getElementById(id); if (e) e.disabled = disabled; }
@@ -1640,6 +1643,7 @@ function updateControls() {
   setCtl('play',    locked || !idle || !canPlay);
   setCtl('playall', locked || !idle || !ops.length);
   setCtl('pause',   locked || idle);
+  setCtl('stop',    locked || (idle && currentPhaseNum === 0));
 
   const bp = document.getElementById('btn-pause');  if (bp) bp.textContent = paused ? t('btnResume') : t('btnPause');
   const mp = document.getElementById('mbtn-pause'); if (mp) mp.textContent = paused ? '▶' : '⏸';
@@ -1648,8 +1652,7 @@ function updateControls() {
 // Render the current grid to the inline canvas and, if open, the zoom modal —
 // so clicking to zoom never interrupts playback.
 function renderPlay() {
-  drawGrid();
-  if (modalOpen) sizeAndPaintModal();
+  drawGrid();   // drawGrid itself repaints the modal when open
 }
 
 // Update the phase badge / title / description / progress dots for the current
@@ -1721,6 +1724,14 @@ function togglePause() {
   if (!playing) return;
   paused = !paused;
   updateControls();
+}
+
+// Stop: end any playback and rewind to the initial grid (phase 0).
+function doStop() {
+  cancelPlayback();
+  setEditingDisabled(false);
+  jumpToPhase(0);
+  if (modalOpen) sizeAndPaintModal();
 }
 
 // Animate one stage; resolves when it finishes or its generation is superseded.
@@ -1963,6 +1974,8 @@ function drawGrid() {
   canvas.style.height = size + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   paintGrid(ctx, grid, N, cell, currentPhaseNum, false);
+
+  if (modalOpen) sizeAndPaintModal();   // keep the zoom view synced to every redraw
 }
 
 // ---------------------------------------------------------------------------
@@ -2121,6 +2134,7 @@ document.getElementById('btn-step') .addEventListener('click', goNext);
 document.getElementById('btn-play') .addEventListener('click', playCurrentPhase);
 document.getElementById('btn-play-all').addEventListener('click', playAll);
 document.getElementById('btn-pause').addEventListener('click', togglePause);
+document.getElementById('btn-stop').addEventListener('click', doStop);
 document.getElementById('btn-color').addEventListener('click', toggleColor);
 
 // Modal mirror buttons (prev / next / play / play-all / pause)
@@ -2129,6 +2143,7 @@ document.getElementById('mbtn-next').addEventListener('click', goNext);
 document.getElementById('mbtn-play').addEventListener('click', playCurrentPhase);
 document.getElementById('mbtn-play-all').addEventListener('click', playAll);
 document.getElementById('mbtn-pause').addEventListener('click', togglePause);
+document.getElementById('mbtn-stop').addEventListener('click', doStop);
 document.getElementById('btn-reset').addEventListener('click', () => { exitDrawMode(); initGrid(); });
 document.getElementById('grid-size').addEventListener('change', () => { if (drawMode) startDraw(); else initGrid(); });
 
