@@ -337,11 +337,35 @@
   }
 
   /* ===================  LANGUAGE SWITCHER  =================== */
-  .lang-switch {
+  .topbar {
     position: absolute;
     top: 16px;
     right: 16px;
     z-index: 20;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .topbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    padding: 8px 13px;
+    border-radius: 11px;
+    border: 1px solid var(--border2);
+    background: rgba(16,20,29,0.88);
+    backdrop-filter: blur(10px);
+    color: var(--muted);
+    cursor: pointer;
+    box-shadow: 0 10px 28px -14px rgba(0,0,0,0.8);
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .topbtn:hover { background: var(--surface2); color: var(--text); border-color: var(--border3); }
+
+  .lang-switch {
     display: inline-flex;
     gap: 3px;
     padding: 4px;
@@ -648,6 +672,45 @@
   .tipwrap { display: inline-flex; }
   .tipwrap > button:disabled { pointer-events: none; }
 
+  /* ===================  GUIDED TOUR  =================== */
+  #tour-mask { position: fixed; inset: 0; z-index: 1000; display: none; }
+  #tour-mask.on { display: block; }
+  #tour-spotlight {
+    position: fixed; z-index: 1001; display: none;
+    border-radius: 8px;
+    box-shadow: 0 0 0 9999px rgba(6,8,12,0.80);
+    pointer-events: none;
+    transition: left .25s ease, top .25s ease, width .25s ease, height .25s ease;
+  }
+  #tour-popover {
+    position: fixed; z-index: 1002; display: none;
+    width: 300px; max-width: calc(100vw - 24px);
+    padding: 16px 18px 14px;
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border3); border-radius: 12px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.65);
+    transition: left .25s ease, top .25s ease;
+  }
+  #tour-text { font-size: 13.5px; line-height: 1.5; }
+  #tour-controls { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+  #tour-step { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-right: auto; letter-spacing: 0.06em; }
+  .tour-btn {
+    font-family: var(--mono); font-size: 11px; padding: 7px 12px;
+    border-radius: 8px; border: 1px solid var(--border2);
+    background: var(--surface2); color: var(--text); cursor: pointer;
+    transition: background .15s, border-color .15s, opacity .15s;
+  }
+  .tour-btn:hover:not(:disabled) { background: var(--surface3); border-color: var(--border3); }
+  .tour-btn:disabled { opacity: 0.4; cursor: default; }
+  .tour-btn.primary { background: linear-gradient(180deg, var(--accent), var(--accent-dk)); color: #14110a; border-color: var(--accent-dk); }
+  .tour-x {
+    position: absolute; top: 8px; right: 10px;
+    width: 26px; height: 26px; line-height: 1; font-size: 18px;
+    border: none; background: transparent; color: var(--muted);
+    cursor: pointer; border-radius: 7px;
+  }
+  .tour-x:hover { background: var(--surface2); color: var(--text); }
+
   /* ===================  DRAW TOOLBAR  =================== */
   .draw-toolbar {
     display: flex;
@@ -690,7 +753,8 @@
     .hero-sub { font-size: 12.5px; }
     .phase-badge { width: 44px; height: 44px; font-size: 19px; }
     .phase-title-text, .phase-desc-text { font-size: 12px; }
-    .lang-switch { top: 12px; right: 12px; padding: 3px; }
+    .topbar { top: 12px; right: 12px; gap: 8px; }
+    .lang-switch { padding: 3px; }
     .lang-opt { padding: 5px 9px; gap: 6px; }
     .btn { padding: 7px 11px; }
   }
@@ -711,6 +775,8 @@
 </head>
 <body>
 
+<div class="topbar">
+<button id="btn-tutorial" class="topbtn" data-i18n="btnTutorial">Οδηγός</button>
 <div id="lang-switch" class="lang-switch" role="group" aria-label="Language">
   <button class="lang-opt" data-lang="el" aria-label="Ελληνικά">
     <svg class="flag" viewBox="0 0 27 18" aria-hidden="true">
@@ -731,6 +797,7 @@
     </svg>
     <span>EN</span>
   </button>
+</div>
 </div>
 
 <header class="hero">
@@ -773,7 +840,7 @@
     <div class="demo-header">
       <div class="control-row">
         <span class="ctl-label" data-i18n="gridSize">Μέγεθος:</span>
-        <div class="seg">
+        <div class="seg" id="seg-size">
           <button class="btn size-btn" data-size="16">16</button>
           <button class="btn size-btn" data-size="81">81</button>
           <button class="btn size-btn" data-size="256">256</button>
@@ -781,7 +848,7 @@
         </div>
         <span class="spacer"></span>
         <span class="ctl-label" data-i18n="frameLabel">Τιμές:</span>
-        <div class="seg">
+        <div class="seg" id="seg-values">
           <button class="btn mode-btn" id="btn-reset" data-i18n="randomGrid">Τυχαίο</button>
           <button class="btn mode-btn" id="btn-draw" disabled>Σχεδίασε</button>
         </div>
@@ -804,7 +871,7 @@
           <button class="phase-btn" id="phase-btn-unpad" data-phase="UNPAD" style="display:none">U</button>
         </div>
         <button class="btn" id="btn-prev" data-i18n="btnPrev">‹ Προηγούμενη</button>
-        <button class="btn primary" id="btn-step" data-i18n="btnStep">Επόμενη</button>
+        <button class="btn primary" id="btn-step" data-i18n="btnStep">Επόμενη Φάση</button>
         <span class="tipwrap" data-tip="tipPlay"><button class="btn" id="btn-play" data-i18n="btnPlay">▶ Αναπαραγωγή</button></span>
         <span class="tipwrap" data-tip="tipPlayAll"><button class="btn" id="btn-play-all" data-i18n="btnPlayAll">▶▶ Όλα</button></span>
         <span class="tipwrap" data-tip="tipPause"><button class="btn" id="btn-pause" data-i18n="btnPause">⏸ Παύση</button></span>
@@ -887,6 +954,19 @@
 
 <div id="tooltip" class="tooltip"></div>
 
+<!-- Guided tour overlay -->
+<div id="tour-mask"></div>
+<div id="tour-spotlight"></div>
+<div id="tour-popover">
+  <button id="tour-cancel" class="tour-x" aria-label="Close">&times;</button>
+  <div id="tour-text"></div>
+  <div id="tour-controls">
+    <span id="tour-step"></span>
+    <button id="tour-prev" class="tour-btn"></button>
+    <button id="tour-next" class="tour-btn primary"></button>
+  </div>
+</div>
+
 
 <script>
 // ---------------------------------------------------------------------------
@@ -968,7 +1048,7 @@ const STRINGS = {
     gridSize:       'Μέγεθος:',
     frameLabel:     'Τιμές:',
     jumpLabel:      'Φάση:',
-    btnStep:        'Επόμενη',
+    btnStep:        'Επόμενη Φάση',
     btnPlay:        '▶',
     btnStop:        '⏹',
     btnPlayAll:     '▶▶',
@@ -1009,6 +1089,24 @@ const STRINGS = {
     tipBrushSize:   'Μέγεθος πινέλου',
     tipClear:       'Καθαρισμός του πλέγματος',
     tipFinish:      'Ολοκλήρωση σχεδίασης και εκτέλεση',
+    btnTutorial:    'Οδηγός',
+    tourBtnBack:    '‹ Πίσω',
+    tourBtnNext:    'Επόμενο ›',
+    tourBtnDone:    'Τέλος ✓',
+    tourGrid:       'Το πλέγμα n×n επεξεργαστών. Κάντε κλικ πάνω του για μεγέθυνση.',
+    tourSize:       'Επιλέξτε το μέγεθος του πλέγματος: 16, 81, 256 ή μια δική σας τιμή.',
+    tourValues:     'Ορίστε τις τιμές του πλέγματος: τυχαίες ή σχεδιάστε το δικό σας.',
+    tourColor:      'Εμφάνιση/απόκρυψη των χρωμάτων που οπτικοποιούν το unshuffle της Φάσης 2.',
+    tourPhases:     'Μεταβείτε απευθείας σε οποιαδήποτε φάση (0 έως 8).',
+    tourPrev:       'Μετάβαση στην προηγούμενη φάση.',
+    tourNext:       'Μετάβαση στην επόμενη φάση.',
+    tourPlay:       'Αναπαραγωγή της τρέχουσας φάσης σε πραγματικό χρόνο.',
+    tourPlayAll:    'Αναπαραγωγή ολόκληρης της ακολουθίας, από την αρχή ως το τέλος.',
+    tourPause:      'Παύση ή συνέχεια της αναπαραγωγής.',
+    tourStop:       'Διακοπή της αναπαραγωγής και επιστροφή στην αρχή (Φάση 0).',
+    tourPanel:      'Εδώ εμφανίζεται η τρέχουσα φάση, το όνομα και η περιγραφή της.',
+    tourLang:       'Εναλλαγή γλώσσας ανάμεσα σε Ελληνικά και Αγγλικά.',
+    tourTutorial:   'Μπορείτε να ξαναδείτε αυτόν τον οδηγό όποτε θέλετε από εδώ.',
     computingTitle: 'Υπολογισμός…',
     computingDesc:  'Παρακαλώ περιμένετε.'
   },
@@ -1018,7 +1116,7 @@ const STRINGS = {
     gridSize:       'Size:',
     frameLabel:     'Values:',
     jumpLabel:      'Phase:',
-    btnStep:        'Next',
+    btnStep:        'Next Phase',
     btnPlay:        '▶',
     btnStop:        '⏹',
     btnPlayAll:     '▶▶',
@@ -1059,6 +1157,24 @@ const STRINGS = {
     tipBrushSize:   'Brush size',
     tipClear:       'Clear the grid',
     tipFinish:      'Finish drawing and run',
+    btnTutorial:    'Tutorial',
+    tourBtnBack:    '‹ Back',
+    tourBtnNext:    'Next ›',
+    tourBtnDone:    'Done ✓',
+    tourGrid:       'The n×n mesh of processors. Click it to zoom in.',
+    tourSize:       'Choose the grid size: 16, 81, 256 or a custom value.',
+    tourValues:     'Set the grid values: random, or draw your own.',
+    tourColor:      'Show or hide the colours that visualise the Phase 2 unshuffle.',
+    tourPhases:     'Jump straight to any phase (0 to 8).',
+    tourPrev:       'Go to the previous phase.',
+    tourNext:       'Go to the next phase.',
+    tourPlay:       'Play the current phase in real time.',
+    tourPlayAll:    'Play the whole sequence, from start to finish.',
+    tourPause:      'Pause or resume the playback.',
+    tourStop:       'Stop the playback and rewind to the start (Phase 0).',
+    tourPanel:      'Here you see the current phase, its name and description.',
+    tourLang:       'Switch the language between Greek and English.',
+    tourTutorial:   'You can replay this tour any time from here.',
     computingTitle: 'Computing…',
     computingDesc:  'Calculating, please wait.'
   }
@@ -2132,6 +2248,96 @@ function initTooltips() {
     el.addEventListener('mousedown',  () => { clearTimeout(tipTimer); hideTip(); });
   });
 }
+
+// ---------------------------------------------------------------------------
+// Guided tour (tutorial) — spotlight + popover, one feature at a time.
+// ---------------------------------------------------------------------------
+const TOUR = [
+  { sel: '#grid-canvas',    key: 'tourGrid' },
+  { sel: '#seg-size',       key: 'tourSize' },
+  { sel: '#seg-values',     key: 'tourValues' },
+  { sel: '#btn-color',      key: 'tourColor' },
+  { sel: '.phase-jump-row', key: 'tourPhases' },
+  { sel: '#btn-prev',       key: 'tourPrev' },
+  { sel: '#btn-step',       key: 'tourNext' },
+  { sel: '#btn-play',       key: 'tourPlay' },
+  { sel: '#btn-play-all',   key: 'tourPlayAll' },
+  { sel: '#btn-pause',      key: 'tourPause' },
+  { sel: '#btn-stop',       key: 'tourStop' },
+  { sel: '.phase-panel',    key: 'tourPanel' },
+  { sel: '#lang-switch',    key: 'tourLang' },
+  { sel: '#btn-tutorial',   key: 'tourTutorial' },
+];
+let tourIndex = -1;
+
+function startTour() {
+  tourIndex = 0;
+  document.getElementById('tour-mask').classList.add('on');
+  document.getElementById('tour-spotlight').style.display = 'block';
+  document.getElementById('tour-popover').style.display   = 'block';
+  showTourStep();
+}
+function endTour() {
+  tourIndex = -1;
+  document.getElementById('tour-mask').classList.remove('on');
+  document.getElementById('tour-spotlight').style.display = 'none';
+  document.getElementById('tour-popover').style.display   = 'none';
+}
+function tourGo(delta) {
+  if (tourIndex < 0) return;
+  const n = tourIndex + delta;
+  if (n < 0) return;
+  if (n >= TOUR.length) { endTour(); return; }   // past the last step → finish
+  tourIndex = n;
+  showTourStep();
+}
+function showTourStep() {
+  const step = TOUR[tourIndex];
+  const el   = document.querySelector(step.sel);
+
+  document.getElementById('tour-text').textContent = t(step.key);
+  document.getElementById('tour-step').textContent = (tourIndex + 1) + ' / ' + TOUR.length;
+  document.getElementById('tour-prev').textContent = t('tourBtnBack');
+  document.getElementById('tour-prev').disabled    = tourIndex === 0;
+  document.getElementById('tour-next').textContent =
+    (tourIndex === TOUR.length - 1) ? t('tourBtnDone') : t('tourBtnNext');
+
+  if (!el) { endTour(); return; }
+  el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+
+  const r    = el.getBoundingClientRect();
+  const pad  = 6;
+  const spot = document.getElementById('tour-spotlight');
+  spot.style.left   = (r.left - pad) + 'px';
+  spot.style.top    = (r.top  - pad) + 'px';
+  spot.style.width  = (r.width  + pad * 2) + 'px';
+  spot.style.height = (r.height + pad * 2) + 'px';
+
+  // Position the popover below the target, or above if there's no room.
+  const pop = document.getElementById('tour-popover');
+  const pw  = pop.offsetWidth, ph = pop.offsetHeight;
+  const vw  = window.innerWidth, vh = window.innerHeight, gap = 14;
+  let top  = r.bottom + gap;
+  if (top + ph > vh - 8) top = r.top - ph - gap;
+  top = Math.max(8, Math.min(top, vh - ph - 8));
+  let left = r.left + r.width / 2 - pw / 2;
+  left = Math.max(8, Math.min(left, vw - pw - 8));
+  pop.style.left = left + 'px';
+  pop.style.top  = top  + 'px';
+}
+
+document.getElementById('btn-tutorial').addEventListener('click', startTour);
+document.getElementById('tour-prev').addEventListener('click', () => tourGo(-1));
+document.getElementById('tour-next').addEventListener('click', () => tourGo(1));
+document.getElementById('tour-cancel').addEventListener('click', endTour);
+window.addEventListener('keydown', e => {
+  if (tourIndex < 0) return;
+  if (e.key === 'Escape')          endTour();
+  else if (e.key === 'ArrowRight') tourGo(1);
+  else if (e.key === 'ArrowLeft')  tourGo(-1);
+});
+window.addEventListener('resize', () => { if (tourIndex >= 0) showTourStep(); });
+window.addEventListener('scroll', () => { if (tourIndex >= 0) showTourStep(); }, { passive: true });
 
 // ---------------------------------------------------------------------------
 // Event listeners
