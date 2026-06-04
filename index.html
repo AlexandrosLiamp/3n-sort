@@ -1291,6 +1291,7 @@ let   modalOpen     = false;  // zoom modal open → keep repainting it during p
 // Vertical-slice colours for the Phase 2 unshuffle visualisation (k ≤ 4).
 const SLICE_COLORS  = ['#e6c34d', '#46c7b0', '#b07be0', '#e87da0'];
 let   colorEnabled  = true;   // slice-colour visualisation on/off (Χρώματα toggle)
+let   currentLabels = null;   // per-cell slice-provenance labels for the displayed grid (or null)
 
 let drawMode        = false;   // true while the user is painting their own grid
 let drawColor       = 1;       // 1 = white, 0 = black (eraser)
@@ -1450,6 +1451,43 @@ async function runPhases(g, n, push) {
 // ---------------------------------------------------------------------------
 // Build all ops — async; uses sharedGrid (SAB-backed) as working array.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Slice-provenance labels — which ORIGINAL vertical slice each cell came from,
+// tracked through every phase so the colours flow with the data (not just 1–2).
+// Odd-even transposition on 0-1 data is STABLE (equal elements never swap), so a
+// phase's end labels = each region path's 0-cell labels then its 1-cell labels,
+// in original order — no pass simulation needed for the cached phase snapshots.
+// ---------------------------------------------------------------------------
+function initSliceLabels(n) {
+  const k = getNumSlices(n), sw = Math.floor(n / k);
+  const lab = new Uint8Array(n * n);
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++)
+      lab[r * n + c] = Math.floor(c / sw);
+  return lab;
+}
+function permuteSliceLabels(lab, n) {            // mirrors the Phase 2 column unshuffle
+  const k = getNumSlices(n), sw = Math.floor(n / k);
+  const out = new Uint8Array(n * n);
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++) {
+      const nc = (c % k) * sw + Math.floor(c / k);
+      out[r * n + nc] = lab[r * n + c];
+    }
+  return out;
+}
+function partitionSliceLabels(lab, val, n, phase) {   // stable sort of labels along each region path
+  const regions = phaseRegions(phase, n);
+  if (!regions) return lab.slice();
+  const out = lab.slice();
+  for (const path of regions) {
+    let i = 0;
+    for (const [r, c] of path) if (val[r * n + c] === 0) { const [pr, pc] = path[i++]; out[pr * n + pc] = lab[r * n + c]; }
+    for (const [r, c] of path) if (val[r * n + c] === 1) { const [pr, pc] = path[i++]; out[pr * n + pc] = lab[r * n + c]; }
+  }
+  return out;
+}
+
 async function buildAllOps() {
   const paddedN  = nextValidN(logicalN);
   const needsPad = paddedN !== logicalN;
@@ -1484,6 +1522,31 @@ async function buildAllOps() {
     list.push({ phaseNum: 'UNPAD', displayN: logicalN, gridSnapshot: out });
   }
 
+  // Slice-provenance label snapshot for every op (stable-partition; see initSliceLabels).
+  {
+    let lab = initSliceLabels(workN);
+    let val = needsPad ? list[0].gridSnapshot : new Uint8Array(logicalGrid);   // values at phase-1 start
+    for (const op of list) {
+      if (op.phaseNum === 'PAD') {
+        op.labelSnapshot = lab.slice();
+      } else if (op.phaseNum === 'UNPAD') {
+        const ps = getSnakeIndices(0, 0, paddedN  - 1, paddedN  - 1);
+        const ls = getSnakeIndices(0, 0, logicalN - 1, logicalN - 1);
+        const ul = new Uint8Array(logicalN * logicalN);
+        ps.slice(0, logicalN * logicalN).forEach(([r, c], i) => { const [lr, lc] = ls[i]; ul[lr * logicalN + lc] = lab[r * paddedN + c]; });
+        op.labelSnapshot = ul;
+      } else if (op.phaseNum === 2) {
+        lab = permuteSliceLabels(lab, workN);
+        op.labelSnapshot = lab.slice();
+        val = op.gridSnapshot;
+      } else {                                   // sorting phases 1,3,4,5,6,7,8
+        lab = partitionSliceLabels(lab, val, workN, op.phaseNum);
+        op.labelSnapshot = lab.slice();
+        val = op.gridSnapshot;
+      }
+    }
+  }
+
   list.push({ type: 'done' });
   return list;
 }
@@ -1512,6 +1575,7 @@ async function computeOps() {
   computing = true;
   setEditingDisabled(true);
   updateControls();
+  currentLabels = null;   // phase 0 (initial grid) is not slice-coloured
 
   const badge = document.getElementById('phase-badge');
   badge.className   = 'phase-badge computing';
@@ -1551,6 +1615,7 @@ function startDraw() {
   N               = logicalN;
   currentPhaseNum = 0;
   grid            = new Uint8Array(logicalN * logicalN); // blank (all black)
+  currentLabels   = null;
 
   document.getElementById('draw-toolbar').style.display = '';
   canvas.style.cursor = 'crosshair';
@@ -1633,6 +1698,7 @@ function stepForward() {
 
   N               = op.displayN;
   grid            = op.gridSnapshot.slice();
+  currentLabels   = op.labelSnapshot;
   currentPhaseNum = op.phaseNum;
 
   if (opIdx >= ops.length || ops[opIdx].type === 'done')
@@ -1648,6 +1714,7 @@ function jumpToPhase(targetPhase) {
   opIdx           = 0;
   N               = logicalN;
   grid            = new Uint8Array(logicalGrid);
+  currentLabels   = null;
   currentPhaseNum = 0;
   document.getElementById('btn-step').disabled = false;
 
@@ -1672,10 +1739,9 @@ function jumpToPhase(targetPhase) {
 // ---------------------------------------------------------------------------
 
 // Serial odd-even transposition — a faithful replay of parallelOddEven's pass
-// order and 2-no-swap early exit, on a plain array. onPass() fires after each
-// completed pass. Pairs within a pass are disjoint, so this reproduces the same
-// intermediate states as the parallel (worker) run.
-function oddEvenCapture(g, n, regions, onPass) {
+// order and 2-no-swap early exit. Swaps the slice-label array (lab) alongside the
+// value array (g) so colours animate with the data. onPass() fires after each pass.
+function oddEvenCaptureLabeled(g, lab, n, regions, onPass) {
   if (!regions || !regions.length) return;
   const maxLen = Math.max(...regions.map(r => r.length));
   let noSwap = 0;
@@ -1686,7 +1752,11 @@ function oddEvenCapture(g, n, regions, onPass) {
       for (let j = start; j + 1 < idx.length; j += 2) {
         const a = idx[j][0] * n + idx[j][1];
         const b = idx[j+1][0] * n + idx[j+1][1];
-        if (g[a] > g[b]) { const tmp = g[a]; g[a] = g[b]; g[b] = tmp; swaps++; }
+        if (g[a] > g[b]) {
+          const tv = g[a];   g[a]   = g[b];   g[b]   = tv;
+          const tl = lab[a]; lab[a] = lab[b]; lab[b] = tl;
+          swaps++;
+        }
       }
     noSwap = swaps > 0 ? 0 : noSwap + 1;
     onPass();
@@ -1697,28 +1767,30 @@ function oddEvenCapture(g, n, regions, onPass) {
 // of the previous phase. Returns Uint8Array snapshots: [0]=start … [last]=end.
 // Bounded to ~MAX_FRAMES by progressive decimation, so memory stays small even
 // at n=256 where a block sort can run thousands of passes.
-function capturePhaseFrames(start, n, phase) {
+function capturePhaseFrames(start, startLab, n, phase) {
   const regions = phaseRegions(phase, n);
-  const g       = start.slice();
-  const frames  = [g.slice()];            // frame 0 = unsorted (previous phase end)
+  const g    = start.slice();
+  const lab  = startLab.slice();
+  const vF   = [g.slice()];               // frame 0 = unsorted (previous phase end)
+  const lF   = [lab.slice()];
   let stride = 1, since = 0;
 
-  oddEvenCapture(g, n, regions, () => {
-    if (++since >= stride) { frames.push(g.slice()); since = 0; }
-    if (frames.length >= MAX_FRAMES * 2) {           // halve: keep even indices
+  oddEvenCaptureLabeled(g, lab, n, regions, () => {
+    if (++since >= stride) { vF.push(g.slice()); lF.push(lab.slice()); since = 0; }
+    if (vF.length >= MAX_FRAMES * 2) {               // halve: keep even indices
       let w = 0;
-      for (let i = 0; i < frames.length; i += 2) frames[w++] = frames[i];
-      frames.length = w;
+      for (let i = 0; i < vF.length; i += 2) { vF[w] = vF[i]; lF[w] = lF[i]; w++; }
+      vF.length = w; lF.length = w;
       stride *= 2;
     }
   });
 
   // Guarantee the final frame is exactly the phase end.
-  const last = frames[frames.length - 1];
+  const last = vF[vF.length - 1];
   let same = last.length === g.length;
   if (same) for (let i = 0; i < g.length; i++) if (last[i] !== g[i]) { same = false; break; }
-  if (!same) frames.push(g.slice());
-  return frames;
+  if (!same) { vF.push(g.slice()); lF.push(lab.slice()); }
+  return { val: vF, lab: lF };
 }
 
 // The "unsorted state of this stage" = end state of the previous op.
@@ -1726,6 +1798,11 @@ function phaseStartGrid(phase) {
   const j = ops.findIndex(o => o.phaseNum === phase);
   if (j > 0 && ops[j-1].gridSnapshot) return ops[j-1].gridSnapshot;
   return new Uint8Array(logicalGrid);     // phase 1, no padding → initial grid
+}
+function phaseStartLabels(phase) {
+  const j = ops.findIndex(o => o.phaseNum === phase);
+  if (j > 0 && ops[j-1].labelSnapshot) return ops[j-1].labelSnapshot;
+  return initSliceLabels(logicalN);       // phase 1, no padding → initial labels
 }
 
 // Disable the editing controls (grid source / size / phase jumps) during a play
@@ -1819,7 +1896,7 @@ function renderPhaseInfo() {
 function settleTo(stage) {
   const op = ops.find(o => o.phaseNum === stage);
   if (!op) return;
-  N = op.displayN; grid = op.gridSnapshot.slice(); currentPhaseNum = stage;
+  N = op.displayN; grid = op.gridSnapshot.slice(); currentLabels = op.labelSnapshot; currentPhaseNum = stage;
   opIdx = ops.indexOf(op) + 1;
 }
 
@@ -1870,12 +1947,12 @@ function animateStage(stage, gen) {
     renderPhaseInfo();
 
     const sorting = PLAYABLE.includes(stage);
-    const frames  = sorting ? capturePhaseFrames(phaseStartGrid(stage), n, stage) : null;
-    if (sorting && frames.length < 2) { grid = endOp.gridSnapshot.slice(); renderPlay(); resolve(); return; }
-    if (!sorting) { grid = endOp.gridSnapshot.slice(); renderPlay(); }
+    const frames  = sorting ? capturePhaseFrames(phaseStartGrid(stage), phaseStartLabels(stage), n, stage) : null;
+    if (sorting && frames.val.length < 2) { grid = endOp.gridSnapshot.slice(); currentLabels = endOp.labelSnapshot; renderPlay(); resolve(); return; }
+    if (!sorting) { grid = endOp.gridSnapshot.slice(); currentLabels = endOp.labelSnapshot; renderPlay(); }
 
     const dur     = sorting ? playMsFor(stage) : ((stage === 2) ? 1500 : 700);
-    const lastIdx = sorting ? frames.length - 1 : 0;
+    const lastIdx = sorting ? frames.val.length - 1 : 0;
     const t0      = performance.now();
     let   last    = t0, pausedMs = 0;
 
@@ -1884,9 +1961,9 @@ function animateStage(stage, gen) {
       if (paused) { pausedMs += now - last; last = now; playRAF = requestAnimationFrame(tick); return; }
       last = now;
       const p = Math.min(1, (now - t0 - pausedMs) / dur);
-      if (sorting) { grid = frames[Math.round(p * lastIdx)]; renderPlay(); }
+      if (sorting) { const i = Math.round(p * lastIdx); grid = frames.val[i]; currentLabels = frames.lab[i]; renderPlay(); }
       if (p < 1) { playRAF = requestAnimationFrame(tick); }
-      else { if (sorting) { grid = endOp.gridSnapshot.slice(); renderPlay(); } resolve(); }
+      else { if (sorting) { grid = endOp.gridSnapshot.slice(); currentLabels = endOp.labelSnapshot; renderPlay(); } resolve(); }
     })(t0);
   });
 }
@@ -1991,21 +2068,6 @@ function computeDirtyCells(g, n, phase) {
   return dirty;
 }
 
-// Per-column slice colour for the Phase 1/2 unshuffle visualisation, or null
-// when colouring is off. Colour follows the column's ORIGINAL vertical slice:
-//   phase 1 (pre-unshuffle):  slice = floor(col / sw)              → contiguous bands
-//   phase 2 (post-unshuffle): origCol = (col%sw)*k + floor(col/sw) → dispersed
-function sliceColumnColors(n, phaseNum) {
-  if (!colorEnabled || (phaseNum !== 1 && phaseNum !== 2)) return null;
-  const k = getNumSlices(n), sw = Math.floor(n / k);
-  const out = new Array(n);
-  for (let col = 0; col < n; col++) {
-    const origCol = (phaseNum === 2) ? (col % sw) * k + Math.floor(col / sw) : col;
-    out[col] = SLICE_COLORS[Math.floor(origCol / sw) % SLICE_COLORS.length];
-  }
-  return out;
-}
-
 // ---------------------------------------------------------------------------
 // Paint the grid onto a 2D context at a given cell size.
 // Shared by the inline canvas (drawGrid) and the expand modal (openGridModal).
@@ -2016,14 +2078,13 @@ function paintGrid(c, g, n, cell, phaseNum, cellLines) {
   c.imageSmoothingEnabled = false;
   c.clearRect(0, 0, size, size);
 
-  // Phase 1/2 unshuffle visualisation: tint each white cell by the vertical
-  // slice its column ORIGINATED from. Phase 1 shows k contiguous bands; the
-  // unshuffle (phase 2) disperses them round-robin, making it visible.
-  const colColors = sliceColumnColors(n, phaseNum);
+  // Slice-provenance colouring: tint each white cell by the ORIGINAL vertical
+  // slice it came from, tracked through every phase (currentLabels). null = off.
+  const labels = (colorEnabled && currentLabels && currentLabels.length === n * n) ? currentLabels : null;
 
   for (let r = 0; r < n; r++)
     for (let col = 0; col < n; col++) {
-      if (g[r * n + col] === 1) c.fillStyle = colColors ? colColors[col] : '#e8eaf0';
+      if (g[r * n + col] === 1) c.fillStyle = labels ? SLICE_COLORS[labels[r * n + col]] : '#e8eaf0';
       else                      c.fillStyle = '#0b0e14';
       c.fillRect(col * cell, r * cell, cell, cell);
     }
