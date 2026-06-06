@@ -1085,7 +1085,7 @@ const STRINGS = {
     tipPlayAll:     'Αναπαραγωγή όλης της ακολουθίας από την αρχή ως το τέλος',
     tipPause:       'Παύση ή συνέχεια της αναπαραγωγής',
     tipStop:        'Διακοπή και επιστροφή στην αρχή',
-    tipColor:       'Εμφάνιση/απόκρυψη χρωμάτων που δείχνουν το unshuffle (Φάσεις 1–2)',
+    tipColor:       'Εμφάνιση/απόκρυψη: χρώματα unshuffle (Φάσεις 1–2) και επισήμανση ζευγών blocks (Φάσεις 5–6)',
     tipBrushColor:  'Εναλλαγή χρώματος πινέλου (λευκό/μαύρο)',
     tipBrushSize:   'Μέγεθος πινέλου',
     tipClear:       'Καθαρισμός του πλέγματος',
@@ -1153,7 +1153,7 @@ const STRINGS = {
     tipPlayAll:     'Play the whole sequence from start to finish',
     tipPause:       'Pause or resume playback',
     tipStop:        'Stop and rewind to the start',
-    tipColor:       'Show/hide the colours that visualise the unshuffle (Phases 1–2)',
+    tipColor:       'Show/hide: unshuffle colours (Phases 1–2) and the block-pair highlight (Phases 5–6)',
     tipBrushColor:  'Toggle brush colour (white/black)',
     tipBrushSize:   'Brush size',
     tipClear:       'Clear the grid',
@@ -2007,6 +2007,21 @@ function sliceColumnColors(n, phaseNum) {
   return out;
 }
 
+// Rectangles of the block PAIRS sorted together in phases 5 & 6 (per vertical
+// slice). Phase 5 pairs blocks 0+1, 2+3, …; phase 6 pairs 1+2, 4+5, … — a lone
+// block is left out (it's covered by the other phase). Used for the highlight.
+function blockPairRects(n, phase) {
+  const bs = getBlockSize(n), nb = getNumBlocks(n), k = getNumSlices(n), sw = Math.floor(n / k);
+  const p0 = (phase === 5) ? 0 : 1;
+  const rects = [];
+  for (let vs = 0; vs < k; vs++) {
+    const c0 = vs * sw, c1 = c0 + sw - 1;
+    for (let p = p0; p + 1 < nb; p += 2)
+      rects.push({ r0: p * bs, c0, r1: Math.min((p + 2) * bs - 1, n - 1), c1 });
+  }
+  return rects;
+}
+
 // ---------------------------------------------------------------------------
 // Paint the grid onto a 2D context at a given cell size.
 // Shared by the inline canvas (drawGrid) and the expand modal (openGridModal).
@@ -2076,6 +2091,22 @@ function paintGrid(c, g, n, cell, phaseNum, cellLines) {
       }
     }
     c.stroke();
+  }
+
+  // Block-pair highlight (phases 5–6): a glowing gold border around each block
+  // pair being sorted together this phase. Gated by the Χρώματα toggle.
+  if (colorEnabled && (phaseNum === 5 || phaseNum === 6)) {
+    const rects = blockPairRects(n, phaseNum);
+    c.save();
+    const lw = (cell < 6) ? 2 : 3, half = lw / 2;
+    c.lineWidth   = lw;
+    c.strokeStyle = '#f4d98a';
+    c.shadowColor = 'rgba(244,217,138,0.9)';
+    c.shadowBlur  = Math.max(6, Math.min(18, Math.round(cell * 1.6)));
+    for (const rc of rects)
+      c.strokeRect(rc.c0 * cell + half, rc.r0 * cell + half,
+                   (rc.c1 - rc.c0 + 1) * cell - lw, (rc.r1 - rc.r0 + 1) * cell - lw);
+    c.restore();
   }
 }
 
