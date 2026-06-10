@@ -1832,7 +1832,8 @@ function updateControls() {
   const navOK   = !locked && (idle || paused);
   const atStart = currentPhaseNum === 0;
   const atEnd   = opIdx >= ops.length || (ops[opIdx] && ops[opIdx].type === 'done');
-  const canPlay = !locked && !!ops.length && PLAYABLE.includes(currentPhaseNum);
+  const canPlay = !locked && !!ops.length &&
+                  (currentPhaseNum === 0 || PLAYABLE.includes(currentPhaseNum));
 
   setCtl('prev',    !navOK || atStart);
   setCtl('next',    !navOK || atEnd);
@@ -1984,7 +1985,25 @@ function animateStage(stage, gen) {
 // Play the currently selected phase from the previous phase's end state.
 async function playCurrentPhase() {
   const phase = currentPhaseNum;
-  if (!ops.length || !PLAYABLE.includes(phase)) return;
+  if (!ops.length) return;
+
+  // From the initial grid, Play means "animate the first phase": run the
+  // order from the start (PAD, when needed, snaps instantly inside
+  // animateStage) and stop after phase 1.
+  if (phase === 0) {
+    cancelPlayback();
+    const gen = startPlayback();
+    for (const stage of getPhaseOrder()) {
+      await animateStage(stage, gen);
+      if (gen !== playGen) return;             // superseded — owner stops here
+      if (stage === 1) break;
+    }
+    settleTo(1);
+    endPlayback();
+    return;
+  }
+
+  if (!PLAYABLE.includes(phase)) return;
   cancelPlayback();
   const gen = startPlayback();
   await animateStage(phase, gen);
