@@ -1135,6 +1135,8 @@ const STRINGS = {
     tourTutorial:   'Μπορείτε να ξαναδείτε αυτόν τον οδηγό όποτε θέλετε από εδώ.',
     computingTitle: 'Υπολογισμός…',
     computingDesc:  'Παρακαλώ περιμένετε.',
+    doneTitle:      'Ταξινομήθηκε',
+    doneDesc:       (n) => `Και οι 8 φάσεις ολοκληρώθηκαν — τα ${n * n} στοιχεία του πλέγματος ${n}×${n} είναι πλήρως ταξινομημένα σε snakelike διάταξη.`,
     bootErrTitle:   'Σφάλμα εκκίνησης',
     bootErrDesc:    'Το πρόγραμμα περιήγησης δεν παρέχει SharedArrayBuffer (απαιτείται cross-origin isolation). Δοκιμάστε έναν σύγχρονο browser (Chrome, Firefox, Edge) και φόρτωση μέσω https:// ή localhost — όχι από αρχείο (file://). Αν το πρόβλημα επιμένει, ανανεώστε τη σελίδα.',
     workerErrTitle: 'Σφάλμα εκτέλεσης',
@@ -1212,6 +1214,8 @@ const STRINGS = {
     tourTutorial:   'You can replay this tour any time from here.',
     computingTitle: 'Computing…',
     computingDesc:  'Calculating, please wait.',
+    doneTitle:      'Sorted',
+    doneDesc:       (n) => `All 8 phases complete — the ${n * n} elements of the ${n}×${n} grid are fully sorted in snakelike order.`,
     bootErrTitle:   'Startup error',
     bootErrDesc:    'This browser does not provide SharedArrayBuffer (cross-origin isolation is required). Try a modern browser (Chrome, Firefox, Edge) and load the page over https:// or localhost — not from a file:// path. If the problem persists, refresh the page.',
     workerErrTitle: 'Runtime error',
@@ -1861,6 +1865,26 @@ function renderPhaseInfo() {
   const mbadge = document.getElementById('mp-badge');
   const mtitle = document.getElementById('mp-title');
   let   gridLabel;   // screen-reader label for the canvases: "N×N — phase"
+
+  // Completion moment: opIdx resting on the 'done' marker means the whole
+  // sequence finished (Play All, or jumping/playing through the last phase).
+  // Derived, not stored — every reset path clears it via opIdx.
+  const atDone = !playing && !computing && ops.length > 0 &&
+                 opIdx < ops.length && ops[opIdx].type === 'done';
+  if (atDone) {
+    badge.textContent = '✓'; badge.className = 'phase-badge done';
+    document.getElementById('phase-title-text').textContent = t('doneTitle');
+    document.getElementById('phase-desc-text').textContent  = t('doneDesc')(logicalN);
+    if (mbadge) mbadge.textContent = '✓';
+    if (mtitle) mtitle.textContent = t('doneTitle');
+    gridLabel = `${N}×${N} — ${t('doneTitle')}`;
+    canvas.setAttribute('aria-label', gridLabel);
+    document.getElementById('modal-canvas').setAttribute('aria-label', gridLabel);
+    for (let i = 1; i <= 8; i++)
+      document.getElementById(`pdot-${i}`).className = 'phase-dot done';
+    updateLegend();
+    return;
+  }
 
   if (!p) {
     badge.textContent = '—'; badge.className = 'phase-badge';
