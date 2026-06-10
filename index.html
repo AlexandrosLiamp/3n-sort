@@ -7,8 +7,15 @@
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./coi-serviceworker.js').then(() => {
-      if (!crossOriginIsolated) location.reload();
-    });
+      if (crossOriginIsolated) {
+        sessionStorage.removeItem('coiReloaded');
+      } else if (!sessionStorage.getItem('coiReloaded')) {
+        // One-shot guard: if isolation still isn't there after one reload,
+        // stop retrying — boot shows an error panel instead of looping.
+        sessionStorage.setItem('coiReloaded', '1');
+        location.reload();
+      }
+    }).catch(() => { /* registration failed (e.g. file://) — boot handles it */ });
   }
 </script>
 
@@ -153,15 +160,6 @@
     font-style: italic;
     font-weight: 300;
     color: var(--accent);
-  }
-
-  @supports ((-webkit-background-clip: text) or (background-clip: text)) {
-    .hero h1 em {
-      background: linear-gradient(120deg, var(--accent), #f2dca0);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
   }
 
   .hero-sub {
@@ -335,6 +333,11 @@
     cursor: zoom-in;
     border-radius: 6px;
     box-shadow: 0 0 0 1px var(--border2), 0 20px 50px -24px rgba(0,0,0,0.9);
+  }
+
+  #grid-canvas:focus-visible {
+    outline: none;
+    box-shadow: var(--ring), 0 20px 50px -24px rgba(0,0,0,0.9);
   }
 
   /* ===================  LANGUAGE SWITCHER  =================== */
@@ -575,6 +578,14 @@
   }
 
   .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  /* 2×2 mini-grid of the four slice-origin colours (phases 1–2 chip) */
+  .legend-swatch-multi {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    overflow: hidden;
+  }
+  .legend-swatch-multi span { display: block; }
 
   /* ===================  GRID MODAL (lightbox)  =================== */
   .grid-modal {
@@ -892,7 +903,7 @@
 
     <div class="phase-panel">
       <div class="phase-badge" id="phase-badge">&mdash;</div>
-      <div class="phase-info">
+      <div class="phase-info" aria-live="polite">
         <div class="phase-title-text" id="phase-title-text">Αρχικοποίηση workers…</div>
         <div class="phase-desc-text"  id="phase-desc-text">Παρακαλώ περιμένετε.</div>
       </div>
@@ -909,7 +920,7 @@
     </div>
 
     <div class="grid-wrap">
-      <canvas id="grid-canvas" width="560" height="560"></canvas>
+      <canvas id="grid-canvas" width="560" height="560" role="img" tabindex="0"></canvas>
     </div>
 
     <div class="legend">
@@ -929,19 +940,31 @@
         <div class="legend-swatch" style="background:#e27e7e"></div>
         <span data-i18n="legendDirty">Βρώμικη Περιοχή</span>
       </div>
+      <!-- Phase-aware chips: shown only while the phase that uses them is
+           current (and the Χρώματα toggle is on) — see updateLegend(). -->
+      <div class="legend-item" id="legend-slices" style="display:none">
+        <div class="legend-swatch legend-swatch-multi">
+          <span style="background:#e6c34d"></span><span style="background:#46c7b0"></span><span style="background:#b07be0"></span><span style="background:#e87da0"></span>
+        </div>
+        <span data-i18n="legendSlices">Αρχικό κατακόρυφο slice της στήλης</span>
+      </div>
+      <div class="legend-item" id="legend-pair" style="display:none">
+        <div class="legend-swatch" style="background:transparent;border:2px solid #f4d98a;box-shadow:0 0 6px rgba(244,217,138,0.7)"></div>
+        <span data-i18n="legendPair">Ζεύγος blocks που ταξινομείται μαζί</span>
+      </div>
     </div>
 
   </div>
 
 </main>
 
-<div class="grid-modal" id="grid-modal">
-  <button class="grid-modal-close" id="grid-modal-close" aria-label="Close">&times;</button>
+<div class="grid-modal" id="grid-modal" role="dialog" aria-modal="true">
+  <button class="grid-modal-close" id="grid-modal-close" aria-label="Κλείσιμο">&times;</button>
   <div class="modal-phase" id="modal-phase">
     <span class="mp-badge" id="mp-badge">&mdash;</span>
     <span class="mp-title" id="mp-title"></span>
   </div>
-  <canvas id="modal-canvas"></canvas>
+  <canvas id="modal-canvas" role="img"></canvas>
   <div class="modal-controls" id="modal-controls">
     <button class="mbtn" id="mbtn-prev">&lsaquo;</button>
     <button class="mbtn" id="mbtn-next">&rsaquo;</button>
@@ -958,8 +981,8 @@
 <!-- Guided tour overlay -->
 <div id="tour-mask"></div>
 <div id="tour-spotlight"></div>
-<div id="tour-popover">
-  <button id="tour-cancel" class="tour-x" aria-label="Close">&times;</button>
+<div id="tour-popover" role="dialog">
+  <button id="tour-cancel" class="tour-x" aria-label="Κλείσιμο">&times;</button>
   <div id="tour-text"></div>
   <div id="tour-controls">
     <span id="tour-step"></span>
@@ -1058,6 +1081,8 @@ const STRINGS = {
     btnResume:      '▶',
     legendBlock:    'Όριο block',
     legendDirty:    'Βρώμικη Περιοχή',
+    legendSlices:   'Αρχικό κατακόρυφο slice της στήλης',
+    legendPair:     'Ζεύγος blocks που ταξινομείται μαζί',
     modalHint:      'Κλικ εκτός ή Esc για κλείσιμο',
     drawStart:      'Σχεδίασε',
     drawDone:       'Ολοκλήρωση',
@@ -1109,7 +1134,14 @@ const STRINGS = {
     tourLang:       'Εναλλαγή γλώσσας ανάμεσα σε Ελληνικά και Αγγλικά.',
     tourTutorial:   'Μπορείτε να ξαναδείτε αυτόν τον οδηγό όποτε θέλετε από εδώ.',
     computingTitle: 'Υπολογισμός…',
-    computingDesc:  'Παρακαλώ περιμένετε.'
+    computingDesc:  'Παρακαλώ περιμένετε.',
+    bootErrTitle:   'Σφάλμα εκκίνησης',
+    bootErrDesc:    'Το πρόγραμμα περιήγησης δεν παρέχει SharedArrayBuffer (απαιτείται cross-origin isolation). Δοκιμάστε έναν σύγχρονο browser (Chrome, Firefox, Edge) και φόρτωση μέσω https:// ή localhost — όχι από αρχείο (file://). Αν το πρόβλημα επιμένει, ανανεώστε τη σελίδα.',
+    workerErrTitle: 'Σφάλμα εκτέλεσης',
+    workerErrDesc:  'Ένα νήμα εργασίας (worker) απέτυχε — πιθανόν δεν φορτώθηκε το sort-worker.js. Ανανεώστε τη σελίδα και δοκιμάστε ξανά.',
+    ariaClose:      'Κλείσιμο',
+    ariaLang:       'Γλώσσα',
+    ariaZoom:       'Μεγέθυνση πλέγματος'
   },
   en: {
     heroEyebrow:    'Interactive Algorithm Presentation',
@@ -1126,6 +1158,8 @@ const STRINGS = {
     btnResume:      '▶',
     legendBlock:    'Block boundary',
     legendDirty:    'Dirty region',
+    legendSlices:   'Column’s original vertical slice',
+    legendPair:     'Block pair sorted together',
     modalHint:      'Click outside or press Esc to close',
     drawStart:      'Draw',
     drawDone:       'Finish',
@@ -1177,7 +1211,14 @@ const STRINGS = {
     tourLang:       'Switch the language between Greek and English.',
     tourTutorial:   'You can replay this tour any time from here.',
     computingTitle: 'Computing…',
-    computingDesc:  'Calculating, please wait.'
+    computingDesc:  'Calculating, please wait.',
+    bootErrTitle:   'Startup error',
+    bootErrDesc:    'This browser does not provide SharedArrayBuffer (cross-origin isolation is required). Try a modern browser (Chrome, Firefox, Edge) and load the page over https:// or localhost — not from a file:// path. If the problem persists, refresh the page.',
+    workerErrTitle: 'Runtime error',
+    workerErrDesc:  'A worker thread failed — sort-worker.js may not have loaded. Refresh the page and try again.',
+    ariaClose:      'Close',
+    ariaLang:       'Language',
+    ariaZoom:       'Grid zoom view'
   }
 };
 
@@ -1192,6 +1233,12 @@ function applyLang() {
   });
   document.querySelectorAll('.lang-opt').forEach(b =>
     b.classList.toggle('active', b.dataset.lang === LANG));
+  // aria-labels aren't covered by data-i18n (it sets textContent)
+  document.getElementById('grid-modal-close').setAttribute('aria-label', t('ariaClose'));
+  document.getElementById('tour-cancel').setAttribute('aria-label', t('ariaClose'));
+  document.getElementById('lang-switch').setAttribute('aria-label', t('ariaLang'));
+  document.getElementById('grid-modal').setAttribute('aria-label', t('ariaZoom'));
+  document.getElementById('tour-popover').setAttribute('aria-label', t('btnTutorial'));
   refreshDrawLabels();
 }
 
@@ -1200,8 +1247,13 @@ function applyLang() {
 // ---------------------------------------------------------------------------
 const MAX_N      = 256;
 const N_WORKERS  = Math.min(navigator.hardwareConcurrency || 4, 16);
-const sab        = new SharedArrayBuffer(MAX_N * MAX_N);  // shared grid memory
-const sharedGrid = new Uint8Array(sab);
+// SharedArrayBuffer requires cross-origin isolation; without it the constructor
+// throws and, unguarded, would kill the entire script. Boot checks `sab`.
+let sab = null, sharedGrid = null;
+try {
+  sab        = new SharedArrayBuffer(MAX_N * MAX_N);  // shared grid memory
+  sharedGrid = new Uint8Array(sab);
+} catch (_) { /* handled at boot — see showFatalError() */ }
 
 let   workerPool = [];
 let   msgSeq     = 0;
@@ -1220,20 +1272,40 @@ async function initWorkerPool() {
       }
     });
 
+    // Permanent handler for worker crashes (e.g. sort-worker.js failed to
+    // load): unblock any awaiting dispatches and surface the failure instead
+    // of hanging the playback forever.
+    w.addEventListener('error', () => {
+      pending.forEach(cb => cb(0));
+      pending.clear();
+      showFatalError('workerErrTitle', 'workerErrDesc');
+    });
+
     workerPool.push(w);
 
     // One-shot handler to await 'ready' after init
-    readyPromises.push(new Promise(resolve => {
+    readyPromises.push(new Promise((resolve, reject) => {
       w.addEventListener('message', function onReady(e) {
         if (e.data.type === 'ready') {
           w.removeEventListener('message', onReady);
           resolve();
         }
       });
+      w.addEventListener('error', reject, { once: true });
       w.postMessage({ type: 'init', buffer: sab });
     }));
   }
-  await Promise.all(readyPromises);
+  // If a worker never reports ready (hung SW, blocked load), fail loudly
+  // instead of leaving "Initializing workers…" on screen forever.
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('worker init timeout')), 10000);
+  });
+  try {
+    await Promise.race([Promise.all(readyPromises), timeout]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 // Send a flat Int32Array of pair indices to the pool — all workers fire in parallel.
@@ -1787,6 +1859,7 @@ function renderPhaseInfo() {
   const badge  = document.getElementById('phase-badge');
   const mbadge = document.getElementById('mp-badge');
   const mtitle = document.getElementById('mp-title');
+  let   gridLabel;   // screen-reader label for the canvases: "N×N — phase"
 
   if (!p) {
     badge.textContent = '—'; badge.className = 'phase-badge';
@@ -1796,6 +1869,7 @@ function renderPhaseInfo() {
       : t('readyDesc');
     if (mbadge) mbadge.textContent = '—';
     if (mtitle) mtitle.textContent = t('ready');
+    gridLabel = `${N}×${N} — ${t('ready')}`;
   } else {
     const sym = (p.num === 'PAD') ? 'P' : (p.num === 'UNPAD') ? 'U' : p.num;
     // Strip the leading "Φάση N — " / "Phase N — " — the badge already shows the number.
@@ -1805,7 +1879,11 @@ function renderPhaseInfo() {
     document.getElementById('phase-desc-text').textContent  = p.desc[LANG];
     if (mbadge) mbadge.textContent = sym;
     if (mtitle) mtitle.textContent = title;
+    gridLabel = `${N}×${N} — ${p.title[LANG]}`;
   }
+
+  canvas.setAttribute('aria-label', gridLabel);
+  document.getElementById('modal-canvas').setAttribute('aria-label', gridLabel);
 
   const curIdx = (currentPhaseNum === 0) ? -1 : phaseIndex(currentPhaseNum);
   for (let i = 1; i <= 8; i++) {
@@ -1814,6 +1892,17 @@ function renderPhaseInfo() {
     if (phaseIndex(i) < curIdx)     dot.classList.add('done');
     else if (i === currentPhaseNum) dot.classList.add('current');
   }
+
+  updateLegend();
+}
+
+// Phase-aware legend chips: the slice-origin colours exist only on phases 1–2
+// and the block-pair highlight only on phases 5–6 (both gated by the Χρώματα
+// toggle), so their legend entries appear and disappear with them.
+function updateLegend() {
+  const show = (id, on) => { document.getElementById(id).style.display = on ? '' : 'none'; };
+  show('legend-slices', colorEnabled && (currentPhaseNum === 1 || currentPhaseNum === 2));
+  show('legend-pair',   colorEnabled && (currentPhaseNum === 5 || currentPhaseNum === 6));
 }
 
 // Settle the displayed state on a stage's end snapshot.
@@ -2160,16 +2249,25 @@ function sizeAndPaintModal() {
   paintGrid(mctx, grid, N, cell, currentPhaseNum, true);
 }
 
+let modalReturnFocus = null;   // element to refocus when the zoom modal closes
+
 function openGridModal() {
   if (drawMode || !grid) return;
   modalOpen = true;
+  modalReturnFocus = document.activeElement;
   sizeAndPaintModal();
   gridModal.classList.add('open');
+  document.getElementById('grid-modal-close').focus();
 }
 
 function closeGridModal() {
+  const wasOpen = modalOpen;
   modalOpen = false;
   gridModal.classList.remove('open');
+  if (wasOpen && modalReturnFocus && document.contains(modalReturnFocus)) {
+    modalReturnFocus.focus();
+  }
+  modalReturnFocus = null;
 }
 
 // ---------------------------------------------------------------------------
@@ -2235,11 +2333,14 @@ function updateColorButton() {
   if (!b) return;
   b.textContent = colorEnabled ? t('on') : t('off');
   b.classList.toggle('active', colorEnabled);
+  b.setAttribute('aria-pressed', String(colorEnabled));
+  b.setAttribute('aria-label', t('colorLabel').replace(/:$/, ''));
 }
 
 function toggleColor() {
   colorEnabled = !colorEnabled;
   updateColorButton();
+  updateLegend();
   drawGrid();
   if (modalOpen) sizeAndPaintModal();
 }
@@ -2302,18 +2403,27 @@ const TOUR = [
 ];
 let tourIndex = -1;
 
+let tourReturnFocus = null;   // element to refocus when the tour ends
+
 function startTour() {
   tourIndex = 0;
+  tourReturnFocus = document.activeElement;
   document.getElementById('tour-mask').classList.add('on');
   document.getElementById('tour-spotlight').style.display = 'block';
   document.getElementById('tour-popover').style.display   = 'block';
   showTourStep();
+  document.getElementById('tour-next').focus();
 }
 function endTour() {
+  const wasActive = tourIndex >= 0;
   tourIndex = -1;
   document.getElementById('tour-mask').classList.remove('on');
   document.getElementById('tour-spotlight').style.display = 'none';
   document.getElementById('tour-popover').style.display   = 'none';
+  if (wasActive && tourReturnFocus && document.contains(tourReturnFocus)) {
+    tourReturnFocus.focus();
+  }
+  tourReturnFocus = null;
 }
 function tourGo(delta) {
   if (tourIndex < 0) return;
@@ -2429,6 +2539,13 @@ window.addEventListener('resize', drawGrid);
 
 // Click-to-expand modal
 canvas.addEventListener('click', openGridModal);
+// Keyboard equivalent for the focusable canvas (Enter/Space)
+canvas.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && !drawMode) {
+    e.preventDefault();
+    openGridModal();
+  }
+});
 document.getElementById('grid-modal-close').addEventListener('click', closeGridModal);
 modalCanvas.addEventListener('click', closeGridModal);
 gridModal.addEventListener('click', e => { if (e.target === gridModal) closeGridModal(); });
@@ -2448,10 +2565,34 @@ document.querySelectorAll('.lang-opt').forEach(b => {
 // ---------------------------------------------------------------------------
 // Boot: apply language, init worker pool, then first grid
 // ---------------------------------------------------------------------------
+
+// Fatal-error panel: shown when SAB is unavailable, the worker pool fails to
+// init, or a worker crashes at runtime. Disables the demo controls but leaves
+// the page chrome (language switch, tour) alive.
+function showFatalError(titleKey, descKey) {
+  playGen++;                       // invalidate any running playback session
+  playing = false; paused = false; computing = false;
+  if (modalOpen) closeGridModal();
+  const badge = document.getElementById('phase-badge');
+  badge.textContent = '!';
+  badge.style.background  = 'rgba(236,138,138,0.14)';
+  badge.style.borderColor = 'var(--red)';
+  badge.style.color       = 'var(--red)';
+  document.getElementById('phase-title-text').textContent = t(titleKey);
+  document.getElementById('phase-desc-text').textContent  = t(descKey);
+  document.querySelectorAll('.demo-card button, .demo-card input, .grid-modal .mbtn')
+    .forEach(el => { el.disabled = true; });
+}
+
 applyLang();
 updateColorButton();
 initTooltips();
-initWorkerPool().then(() => initGrid());
+if (!sab) {
+  showFatalError('bootErrTitle', 'bootErrDesc');
+} else {
+  initWorkerPool().then(() => initGrid())
+                  .catch(() => showFatalError('bootErrTitle', 'bootErrDesc'));
+}
 </script>
 
 </body></html>
