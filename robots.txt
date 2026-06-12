@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://alexandrosliamp.github.io/3n-sort/sitemap.xml

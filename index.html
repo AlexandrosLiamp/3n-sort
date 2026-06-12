@@ -32,7 +32,53 @@
 </script>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3n-sort — Παράλληλη Οπτικοποίηση</title>
+<title>3n-sort: Parallel Sorting Algorithm Visualizer (Schnorr &amp; Shamir)</title>
+<meta name="description" content="Interactive visualizer of 3n-sort, the Schnorr and Shamir parallel sorting algorithm for an n×n mesh of processors. Watch all 8 phases sort the grid, race sequential vs parallel odd-even transposition sort, and explore the k-way unshuffle. In Greek and English.">
+<link rel="canonical" href="https://alexandrosliamp.github.io/3n-sort/">
+
+<!-- Social / link previews -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="3n-sort">
+<meta property="og:title" content="3n-sort: Parallel Sorting Algorithm Visualizer (Schnorr &amp; Shamir)">
+<meta property="og:description" content="Interactive visualizer of the Schnorr and Shamir parallel sorting algorithm for an n×n mesh of processors. All 8 phases, step by step, in Greek and English.">
+<meta property="og:url" content="https://alexandrosliamp.github.io/3n-sort/">
+<meta property="og:image" content="https://alexandrosliamp.github.io/3n-sort/social-preview.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="el_GR">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="3n-sort: Parallel Sorting Algorithm Visualizer (Schnorr &amp; Shamir)">
+<meta name="twitter:description" content="Interactive visualizer of the Schnorr and Shamir parallel sorting algorithm for an n×n mesh of processors.">
+<meta name="twitter:image" content="https://alexandrosliamp.github.io/3n-sort/social-preview.png">
+
+<!-- Structured data for search engines and AI assistants -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "3n-sort",
+  "alternateName": "3n-sort: Parallel Sorting Algorithm Visualizer",
+  "url": "https://alexandrosliamp.github.io/3n-sort/",
+  "description": "Interactive visualizer of 3n-sort, the Schnorr and Shamir parallel sorting algorithm that sorts an n×n mesh of processors in 3n+o(n) steps. It animates all 8 phases on a real grid, compares sequential and parallel odd-even transposition sort, and explains the k-way unshuffle by dealing cards to players. Bilingual: Greek and English.",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "Web browser",
+  "isAccessibleForFree": true,
+  "inLanguage": ["el", "en"],
+  "author": {
+    "@type": "Person",
+    "name": "AlexandrosLiamp",
+    "url": "https://github.com/AlexandrosLiamp"
+  },
+  "about": [
+    { "@type": "Thing", "name": "parallel sorting algorithm" },
+    { "@type": "Thing", "name": "odd-even transposition sort" },
+    { "@type": "Thing", "name": "mesh-connected processor array" },
+    { "@type": "Thing", "name": "Schnorr and Shamir 3n-sort" }
+  ],
+  "keywords": "3n-sort, parallel sorting algorithm, Schnorr Shamir, mesh sorting, odd-even transposition sort, snakelike order, unshuffle, sorting visualizer"
+}
+</script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20128%20128%22%20width%3D%22128%22%20height%3D%22128%22%20role%3D%22img%22%20aria-label%3D%223n-sort%20logo%22%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%22120%22%20height%3D%22120%22%20rx%3D%2226%22%20fill%3D%22%231E3A5F%22%20stroke%3D%22%23FFFFFF%22%20stroke-opacity%3D%220.45%22%20stroke-width%3D%222%22%2F%3E%3Cpolyline%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-opacity%3D%220.9%22%20points%3D%2230%2C30%20102%2C30%20102%2C54%2030%2C54%2030%2C78%20102%2C78%20102%2C102%2030%2C102%22%2F%3E%3Cg%20stroke%3D%22%233a4252%22%20stroke-width%3D%220.75%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%23121212%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%23202020%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%232f2f2f%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%233d3d3d%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%234b4b4b%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%235a5a5a%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%23686868%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%23767676%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23848484%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23939393%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23a1a1a1%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23afafaf%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23bdbdbd%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23cccccc%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23dadada%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23e8e8e8%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -203,7 +249,6 @@
     max-width: 920px;
     margin: 0 auto;
     padding: 72px 28px 44px;
-    border-bottom: 1px solid var(--border);
   }
 
   .hero-eyebrow {
