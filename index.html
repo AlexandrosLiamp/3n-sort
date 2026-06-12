@@ -6,7 +6,11 @@
      automatically; every subsequent load is cross-origin-isolated. -->
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./coi-serviceworker.js').then(() => {
+    navigator.serviceWorker.register('./coi-serviceworker.js')
+      // Wait until the worker is ACTIVE before judging isolation — register()
+      // resolves earlier, and reloading before activation wastes the one shot.
+      .then(() => navigator.serviceWorker.ready)
+      .then(() => {
       if (crossOriginIsolated) {
         sessionStorage.removeItem('coiReloaded');
       } else if (!sessionStorage.getItem('coiReloaded')) {
@@ -19,49 +23,130 @@
   }
 </script>
 
+<!-- Apply the saved theme before first paint so a dark-mode reload doesn't flash light. -->
+<script>
+  try {
+    document.documentElement.dataset.theme =
+      localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+  } catch (_) {}
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>3n-sort — Παράλληλη Οπτικοποίηση</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20128%20128%22%20width%3D%22128%22%20height%3D%22128%22%20role%3D%22img%22%20aria-label%3D%223n-sort%20logo%22%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%22120%22%20height%3D%22120%22%20rx%3D%2226%22%20fill%3D%22%230b0e14%22%20stroke%3D%22%23e2c97e%22%20stroke-opacity%3D%220.45%22%20stroke-width%3D%222%22%2F%3E%3Cpolyline%20fill%3D%22none%22%20stroke%3D%22%23e2c97e%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-opacity%3D%220.9%22%20points%3D%2230%2C30%20102%2C30%20102%2C54%2030%2C54%2030%2C78%20102%2C78%20102%2C102%2030%2C102%22%2F%3E%3Cg%20stroke%3D%22%233a4252%22%20stroke-width%3D%220.75%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%23121212%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%23202020%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%232f2f2f%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%233d3d3d%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%234b4b4b%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%235a5a5a%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%23686868%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%23767676%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23848484%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23939393%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23a1a1a1%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23afafaf%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23bdbdbd%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23cccccc%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23dadada%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23e8e8e8%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20128%20128%22%20width%3D%22128%22%20height%3D%22128%22%20role%3D%22img%22%20aria-label%3D%223n-sort%20logo%22%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%22120%22%20height%3D%22120%22%20rx%3D%2226%22%20fill%3D%22%231E3A5F%22%20stroke%3D%22%23FFFFFF%22%20stroke-opacity%3D%220.45%22%20stroke-width%3D%222%22%2F%3E%3Cpolyline%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-opacity%3D%220.9%22%20points%3D%2230%2C30%20102%2C30%20102%2C54%2030%2C54%2030%2C78%20102%2C78%20102%2C102%2030%2C102%22%2F%3E%3Cg%20stroke%3D%22%233a4252%22%20stroke-width%3D%220.75%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%23121212%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%23202020%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%232f2f2f%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2230%22%20r%3D%227%22%20fill%3D%22%233d3d3d%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%234b4b4b%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%235a5a5a%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%23686868%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2254%22%20r%3D%227%22%20fill%3D%22%23767676%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23848484%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23939393%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23a1a1a1%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%2278%22%20r%3D%227%22%20fill%3D%22%23afafaf%22%2F%3E%3Ccircle%20cx%3D%22102%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23bdbdbd%22%2F%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23cccccc%22%2F%3E%3Ccircle%20cx%3D%2254%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23dadada%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%22102%22%20r%3D%227%22%20fill%3D%22%23e8e8e8%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,700;1,300;1,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    /* ---- Surfaces ---------------------------------------------------- */
-    --bg:        #0f131d;
-    --bg2:       #11151f;
-    --surface:   #12161f;
-    --surface2:  #1a2030;
-    --surface3:  #222a3d;
+    /* ---- Surfaces (Swiss Lab light — design-system/3n-sort/MASTER.md,
+            dimmed from the spec values per user request 2026-06-11) ----- */
+    --bg:        #E8ECF1;
+    --bg2:       #EFF2F6;
+    --surface:   #F6F8FA;
+    --surface2:  #E8EBF0;
+    --surface3:  #DCE1E8;
+    --border:    rgba(15,23,42,0.08);
+    --border2:   #D7DCE3;
+    --border3:   #BEC6D1;
+
+    /* ---- Text -------------------------------------------------------- */
+    --text:   #0F172A;
+    --text2:  #334155;
+    --muted:  #5D6B7E;
+    --faint:  #8B97A8;
+
+    /* ---- Accents ----------------------------------------------------- */
+    --accent:    #1E3A5F;   /* navy — primary / active */
+    --accent-dk: #16304F;
+    --accent2:   #2563EB;   /* blue — block boundary */
+    --accent3:   #059669;   /* green — done / CTA */
+    --red:       #DC2626;   /* dirty region */
+    --orange:    #D97706;
+    --purple:    #2563EB;   /* computing */
+
+    /* ---- State tints (themed) ----------------------------------------- */
+    --active-bg:      rgba(30,58,95,0.09);
+    --active-ring:    rgba(30,58,95,0.40);
+    --done-bg:        rgba(5,150,105,0.10);
+    --done-fg:        #047857;
+    --computing-bg:   rgba(37,99,235,0.08);
+    --computing-glow: rgba(37,99,235,0.40);
+    --err-bg:         rgba(220,38,38,0.08);
+    --hover-tint:     rgba(15,23,42,0.05);
+    --glass:          rgba(255,255,255,0.80);
+    --grid-line:      rgba(15,23,42,0.04);
+    --scrim:          rgba(15,23,42,0.60);
+
+    /* ---- Canvas / data-viz (read into VIZC by refreshVizColors) ------- */
+    --viz-cell0:      #0f172a;
+    --viz-cell1:      #fafbfc;
+    --viz-line:       rgba(100,116,139,0.45);
+    --viz-boundary:   rgba(37,99,235,0.55);
+    --viz-dirty:      #DC2626;
+    --viz-pair:       #059669;
+    --viz-pair-glow:  rgba(5,150,105,0.7);
+
+    /* ---- Type -------------------------------------------------------- */
+    --mono:  'Inter', system-ui, sans-serif;
+    --serif: 'Inter', system-ui, sans-serif;
+
+    /* ---- Misc -------------------------------------------------------- */
+    --radius:   12px;
+    --radius-s: 8px;
+    --shadow:   0 1px 2px rgba(15,23,42,0.05),
+                0 4px 6px rgba(15,23,42,0.07);
+    --ring:     0 0 0 3px rgba(30,58,95,0.22);
+  }
+
+  /* Dark variant — same Swiss hue roles on slate surfaces (NOT the old gold
+     Night Lab); active accent lightened so it reads on dark. */
+  :root[data-theme="dark"] {
+    --bg:        #0E131B;
+    --bg2:       #101622;
+    --surface:   #141A26;
+    --surface2:  #1B2330;
+    --surface3:  #252F3F;
     --border:    rgba(255,255,255,0.06);
     --border2:   rgba(255,255,255,0.12);
     --border3:   rgba(255,255,255,0.20);
 
-    /* ---- Text -------------------------------------------------------- */
-    --text:   #eef0f6;
-    --text2:  #c4cbda;
-    --muted:  #8b93a9;
-    --faint:  #5c6479;
+    --text:   #E9EDF4;
+    --text2:  #C2CAD8;
+    --muted:  #8B95A7;
+    --faint:  #5E6779;
 
-    /* ---- Accents ----------------------------------------------------- */
-    --accent:    #e7cd83;   /* gold — primary */
-    --accent-dk: #d4b86a;
-    --accent2:   #7aa6e6;   /* blue — block boundary */
-    --accent3:   #84d3aa;   /* green — done */
-    --red:       #ec8a8a;   /* dirty region */
-    --orange:    #ff9a3c;
-    --purple:    #b48ce6;   /* computing */
+    --accent:    #8FB6EC;
+    --accent-dk: #7AA2D8;
+    --accent2:   #7AA6E6;
+    --accent3:   #34D399;
+    --red:       #F08A8A;
+    --orange:    #FFB35C;
+    --purple:    #86AEEA;
 
-    /* ---- Type -------------------------------------------------------- */
-    --mono:  'DM Mono', ui-monospace, monospace;
-    --serif: 'Fraunces', Georgia, serif;
+    --active-bg:      rgba(143,182,236,0.13);
+    --active-ring:    rgba(143,182,236,0.45);
+    --done-bg:        rgba(52,211,153,0.12);
+    --done-fg:        #6EE7B7;
+    --computing-bg:   rgba(122,166,230,0.12);
+    --computing-glow: rgba(122,166,230,0.45);
+    --err-bg:         rgba(240,138,138,0.12);
+    --hover-tint:     rgba(255,255,255,0.06);
+    --glass:          rgba(18,23,33,0.85);
+    --grid-line:      rgba(255,255,255,0.022);
+    --scrim:          rgba(4,6,10,0.80);
 
-    /* ---- Misc -------------------------------------------------------- */
-    --radius:   14px;
-    --radius-s: 8px;
+    --viz-cell0:      #0b0e14;
+    --viz-cell1:      #e8eaf0;
+    --viz-line:       rgba(124,136,153,0.45);
+    --viz-boundary:   rgba(122,166,230,0.55);
+    --viz-dirty:      #ec8a8a;
+    --viz-pair:       #34d399;
+    --viz-pair-glow:  rgba(52,211,153,0.8);
+
     --shadow:   0 1px 0 rgba(255,255,255,0.04) inset,
                 0 18px 50px -20px rgba(0,0,0,0.8),
                 0 6px 18px -10px rgba(0,0,0,0.6);
-    --ring:     0 0 0 3px rgba(231,205,131,0.22);
+    --ring:     0 0 0 3px rgba(143,182,236,0.28);
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -72,6 +157,7 @@
     background: var(--bg);
     color: var(--text);
     font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
     min-height: 100vh;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
@@ -85,8 +171,8 @@
     position: fixed;
     inset: 0;
     background-image:
-      linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
     background-size: 38px 38px;
     pointer-events: none;
     z-index: 0;
@@ -100,8 +186,14 @@
     pointer-events: none;
     z-index: 0;
     background:
-      radial-gradient(60% 45% at 50% -8%, rgba(231,205,131,0.10), transparent 60%),
-      radial-gradient(55% 40% at 88% 8%, rgba(122,166,230,0.08), transparent 65%);
+      radial-gradient(60% 45% at 50% -8%, rgba(30,58,95,0.06), transparent 60%),
+      radial-gradient(55% 40% at 88% 8%, rgba(37,99,235,0.04), transparent 65%);
+  }
+
+  :root[data-theme="dark"] body::after {
+    background:
+      radial-gradient(60% 45% at 50% -8%, rgba(143,182,236,0.07), transparent 60%),
+      radial-gradient(55% 40% at 88% 8%, rgba(52,211,153,0.04), transparent 65%);
   }
 
   /* ===================  HERO  =================== */
@@ -144,7 +236,7 @@
     width: 76px;
     height: 76px;
     flex-shrink: 0;
-    filter: drop-shadow(0 6px 22px rgba(231,205,131,0.18));
+    filter: drop-shadow(0 6px 22px rgba(30,58,95,0.22));
   }
 
   .hero h1 {
@@ -152,13 +244,13 @@
     font-size: clamp(44px, 7.5vw, 76px);
     font-weight: 700;
     line-height: 0.98;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.03em;
     color: var(--text);
   }
 
   .hero h1 em {
-    font-style: italic;
-    font-weight: 300;
+    font-style: normal;
+    font-weight: 700;
     color: var(--accent);
   }
 
@@ -193,7 +285,7 @@
     padding: 16px 20px;
     border-bottom: 1px solid var(--border);
     gap: 14px;
-    background: rgba(255,255,255,0.014);
+    background: rgba(15,23,42,0.015);
   }
 
   .control-row {
@@ -236,9 +328,13 @@
     padding: 5px 11px;
   }
 
-  .seg .size-btn:hover, .seg .mode-btn:hover { background: rgba(255,255,255,0.05); }
+  .seg .size-btn:hover, .seg .mode-btn:hover { background: var(--hover-tint); }
 
   .spacer { flex: 1 1 auto; min-width: 4px; }
+
+  /* plain grouping wrapper for the transport buttons (one tour spotlight);
+     wraps internally so narrow screens behave as before the grouping */
+  .transport-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
 
   .btn {
     font-family: var(--mono);
@@ -255,27 +351,30 @@
   }
 
   .btn:hover { background: var(--surface3); border-color: var(--border3); }
-  .btn:active { transform: translateY(1px); }
+  /* scale, not translateY: a downward shift extends the control row's
+     scrollable overflow (overflow-x:auto forces overflow-y:auto) and pops a
+     scrollbar that nudges the whole row left while the button is held */
+  .btn:active { transform: scale(0.97); }
   .btn:focus-visible { outline: none; box-shadow: var(--ring); }
 
   .btn.ghost { background: transparent; }
   .btn.ghost:hover { background: var(--surface2); }
 
   .btn.primary {
-    background: linear-gradient(180deg, var(--accent), var(--accent-dk));
-    color: #14110a;
-    border-color: var(--accent-dk);
-    font-weight: 500;
-    box-shadow: 0 6px 16px -8px rgba(231,205,131,0.6);
+    background: var(--accent3);
+    color: #FFFFFF;
+    border-color: #047857;
+    font-weight: 600;
+    box-shadow: 0 6px 16px -8px rgba(5,150,105,0.55);
   }
 
-  .btn.primary:hover { filter: brightness(1.05); border-color: var(--accent); }
+  .btn.primary:hover { filter: brightness(1.06); border-color: var(--accent3); }
   .btn:disabled { opacity: 0.34; cursor: not-allowed; transform: none; }
 
   .size-btn.active, .mode-btn.active {
-    background: rgba(231,205,131,0.16);
+    background: var(--active-bg);
     color: var(--accent);
-    box-shadow: inset 0 0 0 1px rgba(231,205,131,0.45);
+    box-shadow: inset 0 0 0 1px var(--active-ring);
   }
 
 
@@ -313,31 +412,35 @@
   .seg input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
   .seg input[type="number"].active {
-    background: rgba(231,205,131,0.16);
+    background: var(--active-bg);
     color: var(--accent);
-    box-shadow: inset 0 0 0 1px rgba(231,205,131,0.45);
+    box-shadow: inset 0 0 0 1px var(--active-ring);
   }
 
   /* ===================  GRID CANVAS  =================== */
   .grid-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-start;
+    justify-content: center;
     padding: 24px 20px;
     overflow-x: auto;
     border-bottom: 1px solid var(--border);
     background:
-      radial-gradient(80% 80% at 50% 40%, rgba(255,255,255,0.018), transparent 70%);
+      radial-gradient(80% 80% at 50% 40%, rgba(15,23,42,0.015), transparent 70%);
   }
 
   #grid-canvas {
     display: block;
-    margin: 0 auto;
     cursor: zoom-in;
     border-radius: 6px;
-    box-shadow: 0 0 0 1px var(--border2), 0 20px 50px -24px rgba(0,0,0,0.9);
+    box-shadow: 0 0 0 1px var(--border3), 0 20px 50px -24px rgba(15,23,42,0.30);
   }
 
   #grid-canvas:focus-visible {
     outline: none;
-    box-shadow: var(--ring), 0 20px 50px -24px rgba(0,0,0,0.9);
+    box-shadow: var(--ring), 0 20px 50px -24px rgba(15,23,42,0.30);
   }
 
   /* ===================  LANGUAGE SWITCHER  =================== */
@@ -360,11 +463,11 @@
     padding: 8px 13px;
     border-radius: 11px;
     border: 1px solid var(--border2);
-    background: rgba(16,20,29,0.88);
+    background: var(--glass);
     backdrop-filter: blur(10px);
     color: var(--muted);
     cursor: pointer;
-    box-shadow: 0 10px 28px -14px rgba(0,0,0,0.8);
+    box-shadow: 0 10px 28px -14px rgba(15,23,42,0.25);
     transition: background 0.15s, color 0.15s, border-color 0.15s;
   }
   .topbtn:hover { background: var(--surface2); color: var(--text); border-color: var(--border3); }
@@ -375,9 +478,9 @@
     padding: 4px;
     border-radius: 11px;
     border: 1px solid var(--border2);
-    background: rgba(16,20,29,0.88);
+    background: var(--glass);
     backdrop-filter: blur(10px);
-    box-shadow: 0 10px 28px -14px rgba(0,0,0,0.8);
+    box-shadow: 0 10px 28px -14px rgba(15,23,42,0.25);
   }
 
   .lang-opt {
@@ -400,9 +503,9 @@
   .lang-opt:focus-visible { outline: none; box-shadow: var(--ring); }
 
   .lang-opt.active {
-    background: rgba(231,205,131,0.16);
+    background: var(--active-bg);
     color: var(--accent);
-    box-shadow: inset 0 0 0 1px rgba(231,205,131,0.45);
+    box-shadow: inset 0 0 0 1px var(--active-ring);
   }
 
   .lang-opt .flag {
@@ -411,7 +514,7 @@
     border-radius: 2px;
     display: block;
     flex-shrink: 0;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.16);
+    box-shadow: 0 0 0 1px rgba(15,23,42,0.18);
   }
 
   /* ===================  PHASE PANEL  =================== */
@@ -436,35 +539,34 @@
     justify-content: center;
     font-family: var(--serif);
     font-size: 22px;
-    font-style: italic;
     font-weight: 700;
     color: var(--muted);
     transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
   }
 
   .phase-badge.active {
-    background: rgba(231,205,131,0.14);
+    background: var(--active-bg);
     border-color: var(--accent);
     color: var(--accent);
-    box-shadow: 0 0 22px -6px rgba(231,205,131,0.4);
+    box-shadow: 0 0 22px -6px var(--active-ring);
   }
 
   .phase-badge.done {
-    background: rgba(132,211,170,0.14);
+    background: var(--done-bg);
     border-color: var(--accent3);
     color: var(--accent3);
   }
 
   .phase-badge.computing {
-    background: rgba(180,140,230,0.14);
+    background: var(--computing-bg);
     border-color: var(--purple);
     color: var(--purple);
     animation: pulse 1.1s ease-in-out infinite;
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1;   box-shadow: 0 0 0 0 rgba(180,140,230,0.0); }
-    50%      { opacity: 0.55; box-shadow: 0 0 26px -4px rgba(180,140,230,0.5); }
+    0%, 100% { opacity: 1;   box-shadow: 0 0 0 0 transparent; }
+    50%      { opacity: 0.55; box-shadow: 0 0 26px -4px var(--computing-glow); }
   }
 
   .phase-info { flex: 1; min-width: 0; }
@@ -505,7 +607,7 @@
   .phase-dot.current {
     background: var(--accent);
     transform: scale(1.35);
-    box-shadow: 0 0 10px -1px rgba(231,205,131,0.7);
+    box-shadow: 0 0 10px -1px var(--active-ring);
   }
 
   /* ===================  PHASE STEPPER (jump row)  =================== */
@@ -538,18 +640,18 @@
     color: var(--accent2);
   }
 
-  .phase-btn:active { transform: translateY(1px); }
+  .phase-btn:active { transform: scale(0.97); }
   .phase-btn:focus-visible { outline: none; box-shadow: var(--ring); }
 
   .phase-btn.active {
-    background: rgba(231,205,131,0.16);
+    background: var(--active-bg);
     border-color: var(--accent);
     color: var(--accent);
-    box-shadow: inset 0 0 0 1px rgba(231,205,131,0.4);
+    box-shadow: inset 0 0 0 1px var(--active-ring);
   }
 
   .phase-btn.done {
-    background: rgba(132,211,170,0.13);
+    background: var(--done-bg);
     border-color: var(--accent3);
     color: var(--accent3);
   }
@@ -579,6 +681,34 @@
 
   .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
 
+  /* ===================  COMPLETION BANNER  =================== */
+  .done-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--done-bg);
+    color: var(--done-fg);
+    font-size: 12.5px;
+    line-height: 1.55;
+    letter-spacing: 0.02em;
+  }
+
+  .done-banner .db-check {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent3);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
   /* 2×2 mini-grid of the four slice-origin colours (phases 1–2 chip) */
   .legend-swatch-multi {
     display: grid;
@@ -594,7 +724,7 @@
     z-index: 50;
     display: none;
     overflow: auto;
-    background: rgba(5,7,11,0.93);
+    background: var(--scrim);
     backdrop-filter: blur(4px);
   }
 
@@ -603,7 +733,7 @@
   #modal-canvas {
     margin: auto;
     image-rendering: pixelated;
-    box-shadow: 0 10px 60px rgba(0,0,0,0.7);
+    box-shadow: 0 10px 60px rgba(15,23,42,0.45);
     border-radius: 6px;
     cursor: zoom-out;
   }
@@ -635,7 +765,7 @@
     z-index: 51;
     font-family: var(--mono);
     font-size: 11px;
-    color: var(--muted);
+    color: #E2E8F0;
     letter-spacing: 0.08em;
     pointer-events: none;
   }
@@ -672,11 +802,17 @@
   .tooltip {
     position: fixed; z-index: 100; display: none;
     max-width: 240px; padding: 7px 10px;
-    background: var(--surface2); color: var(--text);
-    border: 1px solid var(--border3); border-radius: 8px;
+    background: #0F172A; color: #FFFFFF;
+    border: 1px solid #0F172A; border-radius: 8px;
     font-size: 12px; line-height: 1.35;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+    box-shadow: 0 6px 24px rgba(15,23,42,0.30);
     pointer-events: none;
+  }
+
+  :root[data-theme="dark"] .tooltip {
+    background: var(--surface2);
+    color: var(--text);
+    border-color: var(--border3);
   }
 
   /* Tooltip wrapper — lets a hover tip show even when the inner button is
@@ -690,7 +826,7 @@
   #tour-spotlight {
     position: fixed; z-index: 1001; display: none;
     border-radius: 8px;
-    box-shadow: 0 0 0 9999px rgba(6,8,12,0.80);
+    box-shadow: 0 0 0 9999px var(--scrim);
     pointer-events: none;
     transition: left .25s ease, top .25s ease, width .25s ease, height .25s ease;
   }
@@ -700,7 +836,7 @@
     padding: 16px 18px 14px;
     background: var(--surface); color: var(--text);
     border: 1px solid var(--border3); border-radius: 12px;
-    box-shadow: 0 18px 50px rgba(0,0,0,0.65);
+    box-shadow: 0 18px 50px rgba(15,23,42,0.30);
     transition: left .25s ease, top .25s ease;
   }
   #tour-text { font-size: 13.5px; line-height: 1.5; }
@@ -714,7 +850,7 @@
   }
   .tour-btn:hover:not(:disabled) { background: var(--surface3); border-color: var(--border3); }
   .tour-btn:disabled { opacity: 0.4; cursor: default; }
-  .tour-btn.primary { background: linear-gradient(180deg, var(--accent), var(--accent-dk)); color: #14110a; border-color: var(--accent-dk); }
+  .tour-btn.primary { background: var(--accent3); color: #FFFFFF; border-color: #047857; }
   .tour-x {
     position: absolute; top: 8px; right: 10px;
     width: 26px; height: 26px; line-height: 1; font-size: 18px;
@@ -731,7 +867,7 @@
     flex-wrap: wrap;
     padding: 12px 20px;
     border-bottom: 1px solid var(--border);
-    background: rgba(180,140,230,0.05);
+    background: rgba(37,99,235,0.05);
   }
 
   .draw-toolbar input[type="range"] {
@@ -740,8 +876,233 @@
     accent-color: var(--accent);
   }
 
+  /* ===================  EXPLAINER SECTIONS  =================== */
+  .explainer-card {
+    background: linear-gradient(180deg, var(--surface), var(--bg2));
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-top: 28px;
+    overflow: hidden;
+  }
+
+  .explainer-head { padding: 22px 24px 0; }
+
+  .explainer-title {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text);
+  }
+
+  .explainer-desc {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--text2);
+    max-width: 75ch;
+  }
+
+  .explainer-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: stretch;   /* demo column matches terminal height */
+    padding: 18px 24px 24px;
+  }
+
+  .explainer-demo {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .explainer-ctl {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: auto;       /* pins the button to the terminal's bottom edge */
+    padding-top: 14px;
+    min-height: 32px;
+  }
+
+  .explainer-status { font-size: 12px; color: var(--muted); }
+
+  /* --- A) unshuffle deal --- */
+  .unshuffle-stage { position: relative; height: 200px; }
+
+  .unshuffle-card {
+    position: absolute;
+    left: 0; top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    border: 1px solid rgba(15,23,42,0.25);
+    color: #0F172A;
+    font-size: 10px;
+    font-weight: 600;
+    transition: transform 450ms cubic-bezier(0.23, 1, 0.32, 1);
+    will-change: transform;
+  }
+
+  .unshuffle-label {
+    position: absolute;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: center;
+    color: var(--muted);
+    transition: color 200ms ease;
+  }
+  .unshuffle-label.hot { color: var(--accent); }
+
+  /* block labels: revealed once the deal is complete; blue like the grid's
+     block boundaries */
+  .unshuffle-label.blk {
+    color: var(--accent2);
+    opacity: 0;
+    transition: opacity 250ms ease-out, color 200ms ease;
+  }
+  .unshuffle-label.blk.show { opacity: 1; }
+
+  /* player zones: one box per player (label + pile inside), flashing as a
+     card lands in it; fades away when the piles merge into the final row */
+  .unshuffle-zone {
+    position: absolute;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-s);
+    background: var(--hover-tint);
+    pointer-events: none;
+    transition: opacity 250ms ease-out, border-color 200ms ease, background 200ms ease;
+  }
+  .unshuffle-zone.hot { border-color: var(--accent); background: var(--active-bg); }
+  .unshuffle-zone.gone { opacity: 0; }
+
+  /* block boxes: same chrome as the zones, blue like the block labels;
+     drawn around each block's 4 cards once the final row forms */
+  .unshuffle-zone.blkbox { border-color: var(--accent2); }
+
+  /* --- B) sequential vs parallel race --- */
+  .race-lane { margin-bottom: 10px; }
+
+  .race-lane-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text2);
+  }
+
+  .race-counter {
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: var(--muted);
+  }
+  .race-counter b { color: var(--accent); font-weight: 600; }
+
+  .race-track {
+    position: relative;
+    height: 100px;
+    border-bottom: 1px solid var(--border2);
+  }
+
+  .race-bar {
+    position: absolute;
+    left: 0; bottom: 14px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 2px;
+    border-radius: 3px 3px 0 0;
+    background: var(--accent);
+    color: var(--surface);
+    font-size: 9px;
+    font-weight: 600;
+    transition: transform 260ms cubic-bezier(0.77, 0, 0.175, 1), background 200ms ease;
+    will-change: transform;
+  }
+  .race-bar.swap { background: var(--red); }
+  .race-lane.done .race-bar { background: var(--accent3); }
+
+  .race-bracket {
+    position: absolute;
+    bottom: 2px;
+    height: 9px;
+    border: 2px solid var(--accent2);
+    border-top: none;
+    border-radius: 0 0 5px 5px;
+    opacity: 0;
+    transition: opacity 150ms ease-out;
+  }
+  .race-bracket.on { opacity: 1; }
+
+  /* instant (re)placement: suppress the movement transitions */
+  .unshuffle-stage.no-anim .unshuffle-card,
+  .race-track.no-anim .race-bar { transition: none; }
+
+  /* ===================  MAC TERMINAL (fixed dark, both themes)  =================== */
+  .mac-terminal {
+    background: #1E2227;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-s);
+    overflow: hidden;
+    min-width: 0;
+    box-shadow: 0 10px 24px -12px rgba(0,0,0,0.45);
+  }
+
+  .mac-titlebar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 12px;
+    background: #2A2E35;
+    border-bottom: 1px solid rgba(0,0,0,0.25);
+  }
+
+  .mac-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+
+  .mac-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: 11px;
+    color: #9AA3AE;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .mac-body {
+    margin: 0;
+    padding: 12px 14px;
+    overflow-x: auto;
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.65;
+    color: #D6DEE8;
+    tab-size: 2;
+  }
+
+  .tk-cmt { color: #6B7686; }
+  .tk-kw  { color: #7AA6E6; }
+  .tk-num { color: #E8B26B; }
+
   /* ===================  RESPONSIVE  =================== */
   @media (max-width: 760px) {
+    .explainer-head { padding: 18px 14px 0; }
+    .explainer-body { grid-template-columns: 1fr; padding: 14px 14px 18px; }
     .hero { padding: 56px 20px 36px; }
     .content { padding: 28px 16px 80px; }
     .hero-mark { gap: 14px; }
@@ -788,6 +1149,14 @@
 <body>
 
 <div class="topbar">
+<button id="btn-theme" class="topbtn" aria-label="Εναλλαγή φωτεινού/σκούρου θέματος">
+  <svg id="theme-icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M21.752 15.002A9.718 9.718 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/>
+  </svg>
+  <svg id="theme-icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none">
+    <path d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/>
+  </svg>
+</button>
 <button id="btn-tutorial" class="topbtn" data-i18n="btnTutorial">Οδηγός</button>
 <div id="lang-switch" class="lang-switch" role="group" aria-label="Language">
   <button class="lang-opt" data-lang="el" aria-label="Ελληνικά">
@@ -816,8 +1185,8 @@
   <p class="hero-eyebrow" data-i18n="heroEyebrow">Διαδραστική Παρουσίαση Αλγορίθμου</p>
   <div class="hero-mark">
     <svg class="hero-logo" viewBox="0 0 128 128" role="img" aria-label="3n-sort logo">
-      <rect x="4" y="4" width="120" height="120" rx="26" fill="#0b0e14" stroke="#e2c97e" stroke-opacity="0.45" stroke-width="2"/>
-      <polyline fill="none" stroke="#e2c97e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.9"
+      <rect x="4" y="4" width="120" height="120" rx="26" fill="#1E3A5F" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="2"/>
+      <polyline fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.9"
         points="30,30 102,30 102,54 30,54 30,78 102,78 102,102 30,102"/>
       <g stroke="#3a4252" stroke-width="0.75">
         <circle cx="30"  cy="30"  r="7" fill="#121212"/>
@@ -841,7 +1210,7 @@
     <h1><em>3n</em>-sort</h1>
   </div>
   <p class="hero-sub" data-i18n="heroSub">
-    Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n&times;n επεξεργαστών.
+    Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n&times;n επεξεργαστών, από τους Schnorr και Shamir.
   </p>
 </header>
 
@@ -856,7 +1225,7 @@
           <button class="btn size-btn" data-size="16">16</button>
           <button class="btn size-btn" data-size="81">81</button>
           <button class="btn size-btn" data-size="256">256</button>
-          <input type="number" id="grid-size" min="16" max="256" value="81">
+          <input type="number" id="grid-size" min="16" max="256" placeholder="π.χ. 50">
         </div>
         <span class="spacer"></span>
         <span class="ctl-label" data-i18n="frameLabel">Τιμές:</span>
@@ -883,12 +1252,13 @@
           <button class="phase-btn" id="phase-btn-unpad" data-phase="UNPAD" style="display:none">U</button>
         </div>
         <span class="spacer"></span>
-        <button class="btn" id="btn-prev" data-i18n="btnPrev">‹ Προηγούμενη</button>
-        <button class="btn primary" id="btn-step" data-i18n="btnStep">Επόμενη Φάση</button>
-        <span class="tipwrap" data-tip="tipPlay"><button class="btn" id="btn-play" data-i18n="btnPlay">▶ Αναπαραγωγή</button></span>
-        <span class="tipwrap" data-tip="tipPlayAll"><button class="btn" id="btn-play-all" data-i18n="btnPlayAll">▶▶ Όλα</button></span>
-        <span class="tipwrap" data-tip="tipPause"><button class="btn" id="btn-pause" data-i18n="btnPause">⏸ Παύση</button></span>
-        <span class="tipwrap" data-tip="tipStop"><button class="btn" id="btn-stop" data-i18n="btnStop">⏹</button></span>
+        <div class="transport-group" id="seg-transport">
+          <button class="btn" id="btn-prev" data-i18n="btnPrev">‹ Προηγούμενη</button>
+          <button class="btn primary" id="btn-step" data-i18n="btnStep">Επόμενη Φάση</button>
+          <span class="tipwrap" data-tip="tipPlay"><button class="btn" id="btn-play" data-i18n="btnPlay">▶</button></span>
+          <span class="tipwrap" data-tip="tipPlayAll"><button class="btn" id="btn-play-all" data-i18n="btnPlayAll">▶▶ Όλα</button></span>
+          <span class="tipwrap" data-tip="tipStop"><button class="btn" id="btn-stop" data-i18n="btnStop">⏹</button></span>
+        </div>
       </div>
     </div>
 
@@ -919,25 +1289,32 @@
       </div>
     </div>
 
+    <!-- Completion notice — lives outside the phase panel so the panel keeps
+         describing the last phase; toggled by renderPhaseInfo(). -->
+    <div class="done-banner" id="done-banner" style="display:none" role="status">
+      <span class="db-check" aria-hidden="true">✓</span>
+      <span id="done-banner-text"></span>
+    </div>
+
     <div class="grid-wrap">
       <canvas id="grid-canvas" width="560" height="560" role="img" tabindex="0"></canvas>
     </div>
 
     <div class="legend">
       <div class="legend-item">
-        <div class="legend-swatch" style="background:#0b0e14;border:1px solid rgba(255,255,255,0.18)"></div>
+        <div class="legend-swatch" style="background:var(--viz-cell0)"></div>
         <span>0</span>
       </div>
       <div class="legend-item">
-        <div class="legend-swatch" style="background:#e8eaf0"></div>
+        <div class="legend-swatch" style="background:var(--viz-cell1);border:1px solid var(--border3)"></div>
         <span>1</span>
       </div>
       <div class="legend-item">
-        <div class="legend-swatch" style="background:rgba(108,156,220,0.55)"></div>
+        <div class="legend-swatch" style="background:var(--viz-boundary)"></div>
         <span data-i18n="legendBlock">Όριο block</span>
       </div>
       <div class="legend-item">
-        <div class="legend-swatch" style="background:#e27e7e"></div>
+        <div class="legend-swatch" style="background:var(--viz-dirty)"></div>
         <span data-i18n="legendDirty">Βρώμικη Περιοχή</span>
       </div>
       <!-- Phase-aware chips: shown only while the phase that uses them is
@@ -949,12 +1326,73 @@
         <span data-i18n="legendSlices">Αρχικό κατακόρυφο slice της στήλης</span>
       </div>
       <div class="legend-item" id="legend-pair" style="display:none">
-        <div class="legend-swatch" style="background:transparent;border:2px solid #f4d98a;box-shadow:0 0 6px rgba(244,217,138,0.7)"></div>
+        <div class="legend-swatch" style="background:transparent;border:2px solid var(--viz-pair);box-shadow:0 0 6px var(--viz-pair-glow)"></div>
         <span data-i18n="legendPair">Ζεύγος blocks που ταξινομείται μαζί</span>
       </div>
     </div>
 
   </div>
+
+  <!-- ===== Explainer A — odd-even transposition: sequential vs parallel ===== -->
+  <section class="explainer-card" id="explainer-race" aria-labelledby="xp-race-title">
+    <div class="explainer-head">
+      <h2 class="explainer-title" id="xp-race-title" data-i18n="xpRaceTitle">Odd-even transposition sort: σειριακά και παράλληλα</h2>
+      <p class="explainer-desc" data-i18n="xpRaceDesc"></p>
+    </div>
+    <div class="explainer-body">
+      <div class="explainer-demo">
+        <div class="race-lane" id="race-lane-seq">
+          <div class="race-lane-head">
+            <span class="race-lane-name" data-i18n="xpRaceSeq">Σειριακά</span>
+            <span class="race-counter"><b id="race-steps-seq">0</b> <span data-i18n="xpRaceSteps">βήματα χρόνου</span></span>
+          </div>
+          <div class="race-track" id="race-track-seq" aria-hidden="true"></div>
+        </div>
+        <div class="race-lane" id="race-lane-par">
+          <div class="race-lane-head">
+            <span class="race-lane-name" data-i18n="xpRacePar">Παράλληλα</span>
+            <span class="race-counter"><b id="race-steps-par">0</b> <span data-i18n="xpRaceSteps">βήματα χρόνου</span></span>
+          </div>
+          <div class="race-track" id="race-track-par" aria-hidden="true"></div>
+        </div>
+        <div class="explainer-ctl">
+          <button class="btn primary" id="btn-race">▶</button>
+          <span class="explainer-status" id="race-status" role="status"></span>
+        </div>
+      </div>
+      <div class="mac-terminal">
+        <div class="mac-titlebar" aria-hidden="true">
+          <span class="mac-dot dot-r"></span><span class="mac-dot dot-y"></span><span class="mac-dot dot-g"></span>
+          <span class="mac-title">parallelOddEven()</span>
+        </div>
+        <pre class="mac-body"><code id="xp-code-oddeven"></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Explainer B — Phase 2's unshuffle as dealing cards ===== -->
+  <section class="explainer-card" id="explainer-unshuffle" aria-labelledby="xp-unshuffle-title">
+    <div class="explainer-head">
+      <h2 class="explainer-title" id="xp-unshuffle-title" data-i18n="xpUnshuffleTitle">Φάση 2: Μοίρασμα σε K παίκτες (unshuffle)</h2>
+      <p class="explainer-desc" data-i18n="xpUnshuffleDesc"></p>
+    </div>
+    <div class="explainer-body">
+      <div class="explainer-demo">
+        <div class="unshuffle-stage" id="unshuffle-stage" aria-hidden="true"></div>
+        <div class="explainer-ctl">
+          <button class="btn primary" id="btn-unshuffle">▶</button>
+          <span class="explainer-status" id="unshuffle-status" role="status"></span>
+        </div>
+      </div>
+      <div class="mac-terminal">
+        <div class="mac-titlebar" aria-hidden="true">
+          <span class="mac-dot dot-r"></span><span class="mac-dot dot-y"></span><span class="mac-dot dot-g"></span>
+          <span class="mac-title">unshuffle</span>
+        </div>
+        <pre class="mac-body"><code id="xp-code-unshuffle"></code></pre>
+      </div>
+    </div>
+  </section>
 
 </main>
 
@@ -970,7 +1408,6 @@
     <button class="mbtn" id="mbtn-next">&rsaquo;</button>
     <span class="tipwrap" data-tip="tipPlay"><button class="mbtn" id="mbtn-play">&#9654;</button></span>
     <span class="tipwrap" data-tip="tipPlayAll"><button class="mbtn" id="mbtn-play-all">&#9654;&#9654;</button></span>
-    <span class="tipwrap" data-tip="tipPause"><button class="mbtn" id="mbtn-pause">&#9208;</button></span>
     <span class="tipwrap" data-tip="tipStop"><button class="mbtn" id="mbtn-stop">&#9209;</button></span>
   </div>
   <div class="grid-modal-hint" data-i18n="modalHint">Κλικ εκτός ή Esc για κλείσιμο</div>
@@ -1068,7 +1505,7 @@ const PHASES = [
 const STRINGS = {
   el: {
     heroEyebrow:    'Διαδραστική Παρουσίαση Αλγορίθμου',
-    heroSub:        'Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n×n επεξεργαστών.',
+    heroSub:        'Παράλληλος αλγόριθμος ταξινόμησης για πλέγμα n×n επεξεργαστών, από τους Schnorr και Shamir.',
     gridSize:       'Μέγεθος:',
     frameLabel:     'Τιμές:',
     jumpLabel:      'Φάση:',
@@ -1078,7 +1515,6 @@ const STRINGS = {
     btnPlayAll:     '▶▶',
     btnPrev:        'Πίσω',
     btnPause:       '⏸',
-    btnResume:      '▶',
     legendBlock:    'Όριο block',
     legendDirty:    'Βρώμικη Περιοχή',
     legendSlices:   'Αρχικό κατακόρυφο slice της στήλης',
@@ -1097,6 +1533,7 @@ const STRINGS = {
     readyDesc:      'Επιλέξτε μέγεθος πλέγματος (16, 81, 256 ή κάποια άλλη τιμή), στη συνέχεια ορίστε τις τιμές του πλέγματος (Τυχαίες ή Σχεδιάστε) και είστε έτοιμοι.',
     readyDescPad:   (a, b) => `Μέγεθος ${a}×${a} — padding σε ${b}×${b}. Πατήστε P ή Επόμενη Φάση.`,
     colorLabel:     'Χρώματα:',
+    sizePlaceholder: 'π.χ. 50',
     on:             'Ναι',
     off:            'Όχι',
     tipSize:        'Ορισμός μεγέθους πλέγματος',
@@ -1106,15 +1543,27 @@ const STRINGS = {
     tipPhase:       'Μετάβαση σε αυτή τη φάση',
     tipPrev:        'Προηγούμενη φάση',
     tipNext:        'Επόμενη φάση',
-    tipPlay:        'Αναπαραγωγή της τρέχουσας φάσης σε πραγματικό χρόνο',
+    tipPlay:        'Αναπαραγωγή της τρέχουσας φάσης — κατά τη διάρκεια λειτουργεί ως παύση/συνέχεια',
     tipPlayAll:     'Αναπαραγωγή όλης της ακολουθίας από την αρχή ως το τέλος',
-    tipPause:       'Παύση ή συνέχεια της αναπαραγωγής',
     tipStop:        'Διακοπή και επιστροφή στην αρχή',
     tipColor:       'Εμφάνιση/απόκρυψη: χρώματα unshuffle (Φάσεις 1–2) και επισήμανση ζευγών blocks (Φάσεις 5–6)',
     tipBrushColor:  'Εναλλαγή χρώματος πινέλου (λευκό/μαύρο)',
     tipBrushSize:   'Μέγεθος πινέλου',
     tipClear:       'Καθαρισμός του πλέγματος',
     tipFinish:      'Ολοκλήρωση σχεδίασης και εκτέλεση',
+    xpUnshuffleTitle: 'Φάση 2: Μοίρασμα σε K παίκτες (unshuffle)',
+    xpUnshuffleDesc:  'Η Φάση 2 αναδιατάσσει τις στήλες του πλέγματος όπως όταν μοιράζουμε χαρτιά: n κάρτες δίνονται μία-μία, κυκλικά, σε K παίκτες. Εδώ, 16 κάρτες χρωματισμένες κατά την αρχική τους λωρίδα μοιράζονται σε 4 παίκτες.',
+    xpUnshuffleBtn:   'Μοίρασμα',
+    xpUnshufflePiles: 'Κάθε παίκτης κρατά μία κάρτα από κάθε χρώμα.',
+    xpPlayerShort:    'Π',
+    xpRaceTitle:      'Odd-even transposition sort: σειριακά και παράλληλα',
+    xpRaceDesc:       'Το odd-even transposition sort συγκρίνει γειτονικά ζευγάρια και τα ανταλλάσσει όταν είναι σε λάθος σειρά: στο ένα πέρασμα τα ζευγάρια (1,2), (3,4), …, στο επόμενο τα (2,3), (4,5), … Ένας σειριακός υπολογιστής κάνει μία σύγκριση τη φορά· ένας παράλληλος εκτελεί όλα τα ζευγάρια του περάσματος μαζί, αφού δεν μοιράζονται στοιχεία. Ίδιες 8 τιμές και στις δύο γραμμές: η παράλληλη τελειώνει σε 8 βήματα χρόνου, η σειριακή χρειάζεται 28.',
+    xpRaceBtn:        'Εκκίνηση',
+    xpRaceSeq:        'Σειριακά',
+    xpRacePar:        'Παράλληλα',
+    xpRaceSteps:      'βήματα χρόνου',
+    xpRaceDone:       'Ίδιο αποτέλεσμα: 8 βήματα χρόνου παράλληλα, 28 σειριακά.',
+    xpReplay:         'Ξανά',
     btnTutorial:    'Οδηγός',
     tourBtnBack:    '‹ Πίσω',
     tourBtnNext:    'Επόμενο ›',
@@ -1124,30 +1573,25 @@ const STRINGS = {
     tourValues:     'Ορίστε τις τιμές του πλέγματος: τυχαίες ή σχεδιάστε το δικό σας.',
     tourColor:      'Εμφάνιση/απόκρυψη των χρωμάτων που βοηθούν στην κατανόηση του unshuffle της Φάσης 2.',
     tourPhases:     'Μεταβείτε απευθείας σε οποιαδήποτε φάση (0 έως 8).',
-    tourPrev:       'Μετάβαση στην προηγούμενη φάση.',
-    tourNext:       'Μετάβαση στην επόμενη φάση.',
-    tourPlay:       'Αναπαραγωγή της τρέχουσας φάσης σε πραγματικό χρόνο.',
-    tourPlayAll:    'Αναπαραγωγή ολόκληρης της ακολουθίας, από την αρχή ως το τέλος.',
-    tourPause:      'Παύση ή συνέχεια της αναπαραγωγής.',
-    tourStop:       'Διακοπή της αναπαραγωγής και επιστροφή στην αρχή (Φάση 0).',
+    tourTransport:  'Πλοήγηση και αναπαραγωγή: ‹ › προηγούμενη/επόμενη φάση, ▶ αναπαραγωγή ή παύση της τρέχουσας, ▶▶ όλη η ακολουθία, ⏹ διακοπή και επιστροφή στην αρχή.',
     tourPanel:      'Εδώ εμφανίζεται η τρέχουσα φάση, το όνομα και η περιγραφή της.',
-    tourLang:       'Εναλλαγή γλώσσας ανάμεσα σε Ελληνικά και Αγγλικά.',
     tourTutorial:   'Μπορείτε να ξαναδείτε αυτόν τον οδηγό όποτε θέλετε από εδώ.',
     computingTitle: 'Υπολογισμός…',
     computingDesc:  'Παρακαλώ περιμένετε.',
     doneTitle:      'Ταξινομήθηκε',
-    doneDesc:       (n) => `Και οι 8 φάσεις ολοκληρώθηκαν — τα ${n * n} στοιχεία του πλέγματος ${n}×${n} είναι πλήρως ταξινομημένα σε snakelike διάταξη.`,
+    doneDesc:       (n) => `Και οι 8 φάσεις ολοκληρώθηκαν: το πλέγμα ${n}×${n} είναι πλήρως ταξινομημένο σε snakelike διάταξη.`,
     bootErrTitle:   'Σφάλμα εκκίνησης',
     bootErrDesc:    'Το πρόγραμμα περιήγησης δεν παρέχει SharedArrayBuffer (απαιτείται cross-origin isolation). Δοκιμάστε έναν σύγχρονο browser (Chrome, Firefox, Edge) και φόρτωση μέσω https:// ή localhost — όχι από αρχείο (file://). Αν το πρόβλημα επιμένει, ανανεώστε τη σελίδα.',
     workerErrTitle: 'Σφάλμα εκτέλεσης',
     workerErrDesc:  'Ένα νήμα εργασίας (worker) απέτυχε — πιθανόν δεν φορτώθηκε το sort-worker.js. Ανανεώστε τη σελίδα και δοκιμάστε ξανά.',
     ariaClose:      'Κλείσιμο',
     ariaLang:       'Γλώσσα',
-    ariaZoom:       'Μεγέθυνση πλέγματος'
+    ariaZoom:       'Μεγέθυνση πλέγματος',
+    ariaTheme:      'Εναλλαγή φωτεινού/σκούρου θέματος'
   },
   en: {
     heroEyebrow:    'Interactive Algorithm Presentation',
-    heroSub:        'Parallel sorting algorithm for an n×n mesh of processors.',
+    heroSub:        'Parallel sorting algorithm for an n×n mesh of processors, by Schnorr and Shamir.',
     gridSize:       'Size:',
     frameLabel:     'Values:',
     jumpLabel:      'Phase:',
@@ -1157,7 +1601,6 @@ const STRINGS = {
     btnPlayAll:     '▶▶',
     btnPrev:        'Back',
     btnPause:       '⏸',
-    btnResume:      '▶',
     legendBlock:    'Block boundary',
     legendDirty:    'Dirty region',
     legendSlices:   'Column’s original vertical slice',
@@ -1176,6 +1619,7 @@ const STRINGS = {
     readyDesc:      'Choose a grid size (16, 81, 256 or another value), then set the grid values (Random or Draw) and you are ready.',
     readyDescPad:   (a, b) => `Size ${a}×${a} — padding to ${b}×${b}. Press P or Next Phase.`,
     colorLabel:     'Colours:',
+    sizePlaceholder: 'e.g. 50',
     on:             'On',
     off:            'Off',
     tipSize:        'Set the grid size',
@@ -1185,15 +1629,27 @@ const STRINGS = {
     tipPhase:       'Jump to this phase',
     tipPrev:        'Previous phase',
     tipNext:        'Next phase',
-    tipPlay:        'Play the current phase in real time',
+    tipPlay:        'Play the current phase — while playing it acts as pause/resume',
     tipPlayAll:     'Play the whole sequence from start to finish',
-    tipPause:       'Pause or resume playback',
     tipStop:        'Stop and rewind to the start',
     tipColor:       'Show/hide: unshuffle colours (Phases 1–2) and the block-pair highlight (Phases 5–6)',
     tipBrushColor:  'Toggle brush colour (white/black)',
     tipBrushSize:   'Brush size',
     tipClear:       'Clear the grid',
     tipFinish:      'Finish drawing and run',
+    xpUnshuffleTitle: 'Phase 2: Dealing to K players (the unshuffle)',
+    xpUnshuffleDesc:  'Phase 2 rearranges the grid\'s columns the way you deal cards: n cards are handed out one by one, round-robin, to K players. Here, 16 cards coloured by their original slice are dealt to 4 players.',
+    xpUnshuffleBtn:   'Deal',
+    xpUnshufflePiles: 'Each player holds one card of every colour.',
+    xpPlayerShort:    'P',
+    xpRaceTitle:      'Odd-even transposition sort: sequential and parallel',
+    xpRaceDesc:       'Odd-even transposition sort compares neighbouring pairs and swaps them when they are out of order: one pass handles pairs (1,2), (3,4), …, the next (2,3), (4,5), … A sequential computer makes one comparison at a time; a parallel one executes all pairs of a pass together, since they share no elements. The same 8 values run in both lanes: the parallel lane finishes in 8 time steps, the sequential one needs 28.',
+    xpRaceBtn:        'Race',
+    xpRaceSeq:        'Sequential',
+    xpRacePar:        'Parallel',
+    xpRaceSteps:      'time steps',
+    xpRaceDone:       'Same result: 8 time steps in parallel, 28 sequentially.',
+    xpReplay:         'Replay',
     btnTutorial:    'Tutorial',
     tourBtnBack:    '‹ Back',
     tourBtnNext:    'Next ›',
@@ -1203,26 +1659,21 @@ const STRINGS = {
     tourValues:     'Set the grid values: random, or draw your own.',
     tourColor:      'Show or hide the colours that help you understand the Phase 2 unshuffle.',
     tourPhases:     'Jump straight to any phase (0 to 8).',
-    tourPrev:       'Go to the previous phase.',
-    tourNext:       'Go to the next phase.',
-    tourPlay:       'Play the current phase in real time.',
-    tourPlayAll:    'Play the whole sequence, from start to finish.',
-    tourPause:      'Pause or resume the playback.',
-    tourStop:       'Stop the playback and rewind to the start (Phase 0).',
+    tourTransport:  'Navigation and playback: ‹ › previous/next phase, ▶ play or pause the current one, ▶▶ the whole sequence, ⏹ stop and rewind to the start.',
     tourPanel:      'Here you see the current phase, its name and description.',
-    tourLang:       'Switch the language between Greek and English.',
     tourTutorial:   'You can replay this tour any time from here.',
     computingTitle: 'Computing…',
     computingDesc:  'Calculating, please wait.',
     doneTitle:      'Sorted',
-    doneDesc:       (n) => `All 8 phases complete — the ${n * n} elements of the ${n}×${n} grid are fully sorted in snakelike order.`,
+    doneDesc:       (n) => `All 8 phases complete: the ${n}×${n} grid is fully sorted in snakelike order.`,
     bootErrTitle:   'Startup error',
     bootErrDesc:    'This browser does not provide SharedArrayBuffer (cross-origin isolation is required). Try a modern browser (Chrome, Firefox, Edge) and load the page over https:// or localhost — not from a file:// path. If the problem persists, refresh the page.',
     workerErrTitle: 'Runtime error',
     workerErrDesc:  'A worker thread failed — sort-worker.js may not have loaded. Refresh the page and try again.',
     ariaClose:      'Close',
     ariaLang:       'Language',
-    ariaZoom:       'Grid zoom view'
+    ariaZoom:       'Grid zoom view',
+    ariaTheme:      'Toggle light/dark theme'
   }
 };
 
@@ -1243,8 +1694,42 @@ function applyLang() {
   document.getElementById('lang-switch').setAttribute('aria-label', t('ariaLang'));
   document.getElementById('grid-modal').setAttribute('aria-label', t('ariaZoom'));
   document.getElementById('tour-popover').setAttribute('aria-label', t('btnTutorial'));
+  document.getElementById('btn-theme').setAttribute('aria-label', t('ariaTheme'));
+  document.getElementById('grid-size').setAttribute('placeholder', t('sizePlaceholder'));
   refreshDrawLabels();
+  refreshExplainerLabels();
 }
+
+// ---------------------------------------------------------------------------
+// Theme (light / dark) — chrome is themed in CSS via :root[data-theme];
+// canvas colours are read from the --viz-* custom properties into the VIZC
+// cache so paintGrid / paintAt / the draw-brush button follow the theme too.
+// ---------------------------------------------------------------------------
+let THEME = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+let VIZC  = {};
+
+function refreshVizColors() {
+  const s = getComputedStyle(document.documentElement);
+  const v = k => s.getPropertyValue('--viz-' + k).trim();
+  VIZC = { cell0: v('cell0'), cell1: v('cell1'), line: v('line'),
+           boundary: v('boundary'), dirty: v('dirty'),
+           pair: v('pair'), pairGlow: v('pair-glow') };
+}
+
+function applyTheme() {
+  document.documentElement.dataset.theme = THEME;
+  refreshVizColors();
+  document.getElementById('theme-icon-moon').style.display = THEME === 'light' ? '' : 'none';
+  document.getElementById('theme-icon-sun').style.display  = THEME === 'dark'  ? '' : 'none';
+  refreshDrawLabels();
+  drawGrid();   // no-op before the first grid exists; repaints the modal when open
+}
+
+document.getElementById('btn-theme').addEventListener('click', () => {
+  THEME = THEME === 'light' ? 'dark' : 'light';
+  localStorage.setItem('theme', THEME);
+  applyTheme();
+});
 
 // ---------------------------------------------------------------------------
 // Worker pool — one SharedArrayBuffer, N_WORKERS threads
@@ -1362,6 +1847,7 @@ let   playing       = false;
 let   paused        = false;  // playback frozen by Pause
 let   playRAF       = 0;
 let   playGen       = 0;      // playback generation; bumping it invalidates a running session
+let   playStartedAt = 0;      // session start time — grace window for accidental double ▶
 let   computing     = false;  // buildAllOps in progress
 let   modalOpen     = false;  // zoom modal open → keep repainting it during playback
 
@@ -1569,8 +2055,13 @@ async function buildAllOps() {
 // Grid initialisation — async; shows computing state while workers run.
 // ---------------------------------------------------------------------------
 async function initGrid() {
-  logicalN = Math.max(16, Math.min(256, parseInt(document.getElementById('grid-size').value) || 16));
-  document.getElementById('grid-size').value = logicalN;
+  // Empty input (preset buttons leave it blank) keeps the current size; a
+  // typed value is clamped, and the input is corrected only when clamping
+  // actually changed it.
+  const sizeInput = document.getElementById('grid-size');
+  const typed = parseInt(sizeInput.value);
+  logicalN = Math.max(16, Math.min(256, typed || logicalN));
+  if (typed && typed !== logicalN) sizeInput.value = logicalN;
 
   N               = logicalN;
   currentPhaseNum = 0;
@@ -1617,14 +2108,17 @@ function refreshDrawLabels() {
   document.getElementById('btn-finish').textContent = t('drawDone');
   const cb = document.getElementById('btn-brush-color');
   cb.textContent     = drawColor === 1 ? t('colorWhite') : t('colorBlack');
-  cb.style.background = drawColor === 1 ? '#e8eaf0' : '#0b0e14';
-  cb.style.color      = drawColor === 1 ? '#0b0e14' : '#e8eaf0';
+  cb.style.background = drawColor === 1 ? VIZC.cell1 : VIZC.cell0;
+  cb.style.color      = drawColor === 1 ? VIZC.cell0 : VIZC.cell1;
 }
 
 function startDraw() {
+  cancelPlayback();   // entering draw mode mid-play supersedes the session
   drawMode = true;
-  logicalN = Math.max(16, Math.min(256, parseInt(document.getElementById('grid-size').value) || 16));
-  document.getElementById('grid-size').value = logicalN;
+  const sizeInput = document.getElementById('grid-size');
+  const typed = parseInt(sizeInput.value);
+  logicalN = Math.max(16, Math.min(256, typed || logicalN));
+  if (typed && typed !== logicalN) sizeInput.value = logicalN;
   N               = logicalN;
   currentPhaseNum = 0;
   grid            = new Uint8Array(logicalN * logicalN); // blank (all black)
@@ -1685,7 +2179,7 @@ function paintAt(e) {
   const cell = Math.max(1, Math.floor(Math.min(560, window.innerWidth - 48) / N));
   const dpr  = window.devicePixelRatio || 1;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = drawColor === 1 ? '#e8eaf0' : '#0b0e14';
+  ctx.fillStyle = drawColor === 1 ? VIZC.cell1 : VIZC.cell0;
   for (let dy = -r; dy <= r; dy++)
     for (let dx = -r; dx <= r; dx++) {
       const x = cx + dx, y = cy + dy;
@@ -1752,10 +2246,13 @@ function jumpToPhase(targetPhase) {
 // order and 2-no-swap early exit, on a plain array. onPass() fires after each
 // completed pass. Pairs within a pass are disjoint, so this reproduces the same
 // intermediate states as the parallel (worker) run.
-function oddEvenCapture(g, n, regions, onPass) {
+// Async: yields the main thread every ~24ms of work so long captures (large n)
+// can't freeze the UI between the ▶ click and the first animation frame.
+async function oddEvenCapture(g, n, regions, onPass) {
   if (!regions || !regions.length) return;
   const maxLen = Math.max(...regions.map(r => r.length));
   let noSwap = 0;
+  let sliceStart = performance.now();
   for (let t = 0; t < maxLen && noSwap < 2; t++) {
     const start = t % 2;
     let swaps = 0;
@@ -1767,6 +2264,10 @@ function oddEvenCapture(g, n, regions, onPass) {
       }
     noSwap = swaps > 0 ? 0 : noSwap + 1;
     onPass();
+    if (performance.now() - sliceStart > 24) {
+      await new Promise(r => setTimeout(r, 0));
+      sliceStart = performance.now();
+    }
   }
 }
 
@@ -1774,17 +2275,17 @@ function oddEvenCapture(g, n, regions, onPass) {
 // of the previous phase. Returns Uint8Array snapshots: [0]=start … [last]=end.
 // Bounded to ~MAX_FRAMES by progressive decimation, so memory stays small even
 // at n=256 where a block sort can run thousands of passes.
-function capturePhaseFrames(start, n, phase) {
+async function capturePhaseFrames(start, n, phase) {
   const regions = phaseRegions(phase, n);
   const g       = start.slice();
   const frames  = [g.slice()];            // frame 0 = unsorted (previous phase end)
   let stride = 1, since = 0;
 
-  oddEvenCapture(g, n, regions, () => {
+  await oddEvenCapture(g, n, regions, () => {
     if (++since >= stride) { frames.push(g.slice()); since = 0; }
     if (frames.length >= MAX_FRAMES * 2) {           // halve: keep even indices
       let w = 0;
-      for (let i = 0; i < frames.length; i += 2) frames[w++] = frames[i];
+      for (let i = 0; i < frames.length; i += 2) { frames[w] = frames[i]; w++; }
       frames.length = w;
       stride *= 2;
     }
@@ -1820,7 +2321,6 @@ const CTRL_IDS = {
   next:    ['btn-step', 'mbtn-next'],
   play:    ['btn-play', 'mbtn-play'],
   playall: ['btn-play-all', 'mbtn-play-all'],
-  pause:   ['btn-pause', 'mbtn-pause'],
   stop:    ['btn-stop', 'mbtn-stop'],
 };
 function setCtl(name, disabled) {
@@ -1828,12 +2328,15 @@ function setCtl(name, disabled) {
 }
 
 // Single source of truth for the nav / playback bar (main + modal).
-// prev/next are usable when idle OR paused; play/play-all only when idle;
-// pause only while a session is running (and toggles its Pause/Resume label).
+// ▶ is play/pause/resume in one: it starts the current phase when idle, and
+// while a session runs (incl. Play All) it pauses/resumes it, switching its
+// glyph between ▶ and ⏸. Play-all only when idle; nav stays live during play.
 function updateControls() {
   const locked  = computing || drawMode;
   const idle    = !playing;
-  const navOK   = !locked && (idle || paused);
+  // Nav stays usable DURING playback too — goPrev/goNext cancel the running
+  // session themselves, so jumping mid-animation is safe.
+  const navOK   = !locked;
   const atStart = currentPhaseNum === 0;
   const atEnd   = opIdx >= ops.length || (ops[opIdx] && ops[opIdx].type === 'done');
   const canPlay = !locked && !!ops.length &&
@@ -1841,13 +2344,13 @@ function updateControls() {
 
   setCtl('prev',    !navOK || atStart);
   setCtl('next',    !navOK || atEnd);
-  setCtl('play',    locked || !idle || !canPlay);
+  setCtl('play',    locked || (idle && !canPlay));
   setCtl('playall', locked || !idle || !ops.length);
-  setCtl('pause',   locked || idle);
   setCtl('stop',    locked || (idle && currentPhaseNum === 0));
 
-  const bp = document.getElementById('btn-pause');  if (bp) bp.textContent = paused ? t('btnResume') : t('btnPause');
-  const mp = document.getElementById('mbtn-pause'); if (mp) mp.textContent = paused ? '▶' : '⏸';
+  const showPause = playing && !paused;
+  const bp = document.getElementById('btn-play');  if (bp) bp.textContent = showPause ? t('btnPause') : t('btnPlay');
+  const mp = document.getElementById('mbtn-play'); if (mp) mp.textContent = showPause ? '⏸' : '▶';
 }
 
 // Render the current grid to the inline canvas and, if open, the zoom modal —
@@ -1869,22 +2372,14 @@ function renderPhaseInfo() {
   // Completion moment: opIdx resting on the 'done' marker means the whole
   // sequence finished (Play All, or jumping/playing through the last phase).
   // Derived, not stored — every reset path clears it via opIdx.
+  // The notice lives in its own banner (below the panel) so the phase panel
+  // keeps describing the last phase (8 / UNPAD) instead of being replaced.
   const atDone = !playing && !computing && ops.length > 0 &&
                  opIdx < ops.length && ops[opIdx].type === 'done';
-  if (atDone) {
-    badge.textContent = '✓'; badge.className = 'phase-badge done';
-    document.getElementById('phase-title-text').textContent = t('doneTitle');
-    document.getElementById('phase-desc-text').textContent  = t('doneDesc')(logicalN);
-    if (mbadge) mbadge.textContent = '✓';
-    if (mtitle) mtitle.textContent = t('doneTitle');
-    gridLabel = `${N}×${N} — ${t('doneTitle')}`;
-    canvas.setAttribute('aria-label', gridLabel);
-    document.getElementById('modal-canvas').setAttribute('aria-label', gridLabel);
-    for (let i = 1; i <= 8; i++)
-      document.getElementById(`pdot-${i}`).className = 'phase-dot done';
-    updateLegend();
-    return;
-  }
+  document.getElementById('done-banner').style.display = atDone ? '' : 'none';
+  if (atDone)
+    document.getElementById('done-banner-text').textContent =
+      t('doneTitle') + '. ' + t('doneDesc')(logicalN);
 
   if (!p) {
     badge.textContent = '—'; badge.className = 'phase-badge';
@@ -1899,12 +2394,12 @@ function renderPhaseInfo() {
     const sym = (p.num === 'PAD') ? 'P' : (p.num === 'UNPAD') ? 'U' : p.num;
     // Strip the leading "Φάση N — " / "Phase N — " — the badge already shows the number.
     const title = p.title[LANG].replace(/^(?:Φάση|Phase)\s+\d+\s*—\s*/, '');
-    badge.textContent = sym; badge.className = 'phase-badge active';
+    badge.textContent = sym; badge.className = atDone ? 'phase-badge done' : 'phase-badge active';
     document.getElementById('phase-title-text').textContent = title;
     document.getElementById('phase-desc-text').textContent  = p.desc[LANG];
     if (mbadge) mbadge.textContent = sym;
-    if (mtitle) mtitle.textContent = title;
-    gridLabel = `${N}×${N} — ${p.title[LANG]}`;
+    if (mtitle) mtitle.textContent = atDone ? `${title} — ${t('doneTitle')}` : title;
+    gridLabel = `${N}×${N} — ${p.title[LANG]}` + (atDone ? ` — ${t('doneTitle')}` : '');
   }
 
   canvas.setAttribute('aria-label', gridLabel);
@@ -1914,8 +2409,8 @@ function renderPhaseInfo() {
   for (let i = 1; i <= 8; i++) {
     const dot = document.getElementById(`pdot-${i}`);
     dot.className = 'phase-dot';
-    if (phaseIndex(i) < curIdx)     dot.classList.add('done');
-    else if (i === currentPhaseNum) dot.classList.add('current');
+    if (atDone || phaseIndex(i) < curIdx) dot.classList.add('done');
+    else if (i === currentPhaseNum)       dot.classList.add('current');
   }
 
   updateLegend();
@@ -1938,11 +2433,14 @@ function settleTo(stage) {
   opIdx = ops.indexOf(op) + 1;
 }
 
-// Begin a play session; returns its generation token.
+// Begin a play session; returns its generation token. Editing controls stay
+// ACTIVE during playback (user request): every editing path — phase jumps,
+// prev/next, new grid, draw — cancels the session via the generation token,
+// so nothing needs to be locked except while computing (workers own the SAB).
 function startPlayback() {
   playGen++;
   playing = true; paused = false;
-  setEditingDisabled(true);
+  playStartedAt = performance.now();
   updateControls();
   return playGen;
 }
@@ -1972,34 +2470,68 @@ function doStop() {
   if (modalOpen) sizeAndPaintModal();
 }
 
+// Resolve after the browser has painted the current UI state once (rAF →
+// macrotask). 100ms timeout fallback so a hidden tab can't stall playback.
+function nextPaint() {
+  return new Promise(r => {
+    const fallback = setTimeout(r, 100);
+    requestAnimationFrame(() => setTimeout(() => { clearTimeout(fallback); r(); }, 0));
+  });
+}
+
 // Animate one stage; resolves when it finishes or its generation is superseded.
 // Pause freezes elapsed time without advancing the frame. Sorting phases play
 // captured frames over playMsFor(); non-sort stages (PAD / phase 2 / UNPAD) hold
 // briefly — phase 2 longer, to read the colour-coded unshuffle.
-function animateStage(stage, gen) {
-  return new Promise(resolve => {
-    const endOp = ops.find(o => o.phaseNum === stage);
-    if (!endOp) { resolve(); return; }
-    const n = endOp.displayN;
-    N = n; currentPhaseNum = stage;
-    renderPhaseInfo();
+// The ⏸/phase UI is painted BEFORE the (possibly long) frame capture so the
+// ▶ press is visibly acknowledged immediately; the capture itself yields the
+// main thread periodically, and a phase with zero swaps settles instantly
+// instead of animating seconds of nothing.
+async function animateStage(stage, gen) {
+  const endOp = ops.find(o => o.phaseNum === stage);
+  if (!endOp) return;
+  const n = endOp.displayN;
+  N = n; currentPhaseNum = stage;
+  renderPhaseInfo();
+  updatePhaseButtons();   // controls are live during playback — keep the
+  updateControls();       // active phase button + prev/next state current
 
-    const sorting = PLAYABLE.includes(stage);
-    const frames  = sorting ? capturePhaseFrames(phaseStartGrid(stage), n, stage) : null;
-    if (sorting && frames.length < 2) { grid = endOp.gridSnapshot.slice(); renderPlay(); resolve(); return; }
-    if (!sorting) { grid = endOp.gridSnapshot.slice(); renderPlay(); }
+  await nextPaint();
+  if (gen !== playGen) return;                                  // superseded
 
-    const dur     = sorting ? playMsFor(stage) : ((stage === 2) ? 1500 : 700);
-    const lastIdx = sorting ? frames.length - 1 : 0;
-    const t0      = performance.now();
-    let   last    = t0, pausedMs = 0;
+  const sorting = PLAYABLE.includes(stage);
+  const frames  = sorting ? await capturePhaseFrames(phaseStartGrid(stage), n, stage) : null;
+  if (gen !== playGen) return;                                  // superseded during capture
+  if (sorting && frames.length < 2) { grid = endOp.gridSnapshot.slice(); renderPlay(); return; }
+
+  // No-op fast path: the phase had nothing to sort (end state === start
+  // state — compare-swaps are monotone, so equal ends mean zero swaps).
+  if (sorting) {
+    const f0 = frames[0], fl = frames[frames.length - 1];
+    let same = true;
+    for (let i = 0; i < f0.length; i++) if (f0[i] !== fl[i]) { same = false; break; }
+    if (same) { grid = endOp.gridSnapshot.slice(); renderPlay(); return; }
+  }
+
+  if (!sorting) { grid = endOp.gridSnapshot.slice(); renderPlay(); }
+
+  const dur     = sorting ? playMsFor(stage) : ((stage === 2) ? 1500 : 700);
+  const lastIdx = sorting ? frames.length - 1 : 0;
+
+  await new Promise(resolve => {
+    const t0 = performance.now();
+    let  last = t0, pausedMs = 0;
 
     (function tick(now) {
       if (gen !== playGen) { resolve(); return; }                 // superseded
       if (paused) { pausedMs += now - last; last = now; playRAF = requestAnimationFrame(tick); return; }
       last = now;
       const p = Math.min(1, (now - t0 - pausedMs) / dur);
-      if (sorting) { grid = frames[Math.round(p * lastIdx)]; renderPlay(); }
+      if (sorting) {
+        const fi = Math.round(p * lastIdx);
+        grid = frames[fi];
+        renderPlay();
+      }
       if (p < 1) { playRAF = requestAnimationFrame(tick); }
       else { if (sorting) { grid = endOp.gridSnapshot.slice(); renderPlay(); } resolve(); }
     })(t0);
@@ -2160,6 +2692,7 @@ function blockPairRects(n, phase) {
 // cellLines: draw a 1px line between every cell (used in the modal view).
 // ---------------------------------------------------------------------------
 function paintGrid(c, g, n, cell, phaseNum, cellLines) {
+  if (!VIZC.cell0) refreshVizColors();   // safety: first paint before applyTheme
   const size = cell * n;
   c.imageSmoothingEnabled = false;
   c.clearRect(0, 0, size, size);
@@ -2171,14 +2704,14 @@ function paintGrid(c, g, n, cell, phaseNum, cellLines) {
 
   for (let r = 0; r < n; r++)
     for (let col = 0; col < n; col++) {
-      if (g[r * n + col] === 1) c.fillStyle = colColors ? colColors[col] : '#e8eaf0';
-      else                      c.fillStyle = '#0b0e14';
+      if (g[r * n + col] === 1) c.fillStyle = colColors ? colColors[col] : VIZC.cell1;
+      else                      c.fillStyle = VIZC.cell0;
       c.fillRect(col * cell, r * cell, cell, cell);
     }
 
   // Per-cell gridlines (modal only) — drawn under the block/dirty outlines.
   if (cellLines && cell >= 3) {
-    c.strokeStyle = 'rgba(124,136,153,0.45)';
+    c.strokeStyle = VIZC.line;
     c.lineWidth   = 1;
     c.beginPath();
     for (let i = 1; i < n; i++) {
@@ -2196,7 +2729,7 @@ function paintGrid(c, g, n, cell, phaseNum, cellLines) {
     const bpx  = bs * cell;
     const lw   = cellLines ? 2 : (n <= 16 ? 2 : 1);
     const half = lw / 2;
-    c.strokeStyle = 'rgba(108,156,220,0.55)';
+    c.strokeStyle = VIZC.boundary;
     c.lineWidth   = lw;
     for (let br = 0; br < nb; br++)
       for (let bc = 0; bc < nb; bc++)
@@ -2209,7 +2742,7 @@ function paintGrid(c, g, n, cell, phaseNum, cellLines) {
   if ([1, 3, 4, 5, 6, 7].includes(phaseNum)) {
     const dirty = computeDirtyCells(g, n, phaseNum);
     const isDirty = (r, col) => r >= 0 && r < n && col >= 0 && col < n && dirty[r * n + col];
-    c.strokeStyle = '#e27e7e';
+    c.strokeStyle = VIZC.dirty;
     c.lineWidth   = cellLines ? 2.5 : (n <= 16 ? 2.5 : 1.5);
     c.beginPath();
     for (let r = 0; r < n; r++) {
@@ -2232,14 +2765,15 @@ function paintGrid(c, g, n, cell, phaseNum, cellLines) {
     c.save();
     const lw = (cell < 6) ? 2 : 3, half = lw / 2;
     c.lineWidth   = lw;
-    c.strokeStyle = '#f4d98a';
-    c.shadowColor = 'rgba(244,217,138,0.9)';
+    c.strokeStyle = VIZC.pair;
+    c.shadowColor = VIZC.pairGlow;
     c.shadowBlur  = Math.max(6, Math.min(18, Math.round(cell * 1.6)));
     for (const rc of rects)
       c.strokeRect(rc.c0 * cell + half, rc.r0 * cell + half,
                    (rc.c1 - rc.c0 + 1) * cell - lw, (rc.r1 - rc.r0 + 1) * cell - lw);
     c.restore();
   }
+
 }
 
 // ---------------------------------------------------------------------------
@@ -2362,8 +2896,10 @@ function updateModeButtons() {
 }
 
 // Apply a preset size: re-blank in draw mode, else regenerate a random grid.
+// The input stays empty — it is only for typing a custom size.
 function applySize(n) {
-  document.getElementById('grid-size').value = n;
+  logicalN = n;
+  document.getElementById('grid-size').value = '';
   if (drawMode) startDraw();
   else initGrid();
 }
@@ -2386,6 +2922,417 @@ function toggleColor() {
   updateLegend();
   drawGrid();
   if (modalOpen) sizeAndPaintModal();
+}
+
+// ---------------------------------------------------------------------------
+// Explainer demos — two self-contained sections under the grid:
+//   A) Odd-even transposition race — the same 8 values sorted sequentially
+//      (one compare-exchange per time step) and in parallel (a whole parity
+//      pass per step). Both lanes run the fixed textbook n-pass schedule (no
+//      early exit — the copy quotes 8 vs 28 time steps accordingly).
+//   B) Phase-2 unshuffle as dealing 16 cards round-robin to 4 players.
+// Each terminal shows a SIMPLIFIED teaching version of the algorithm with
+// self-explanatory names (per user request 2026-06-12 — readability over the
+// previous toString() zero-drift extraction; keep them faithful by hand).
+// Cards/bars are absolutely positioned DOM nodes moved via transform + CSS
+// transitions; drivers are async beat loops guarded by generation tokens.
+// ---------------------------------------------------------------------------
+const XP_REDUCED = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const xpSleep = ms => new Promise(r => setTimeout(r, ms));
+
+// Teaching version of the phase-2 column permutation (runPhases does the same
+// with g/n/k/sw and a flat array).
+const XP_CODE_UNSHUFFLE = `function unshuffle(row, numPlayers) {
+  const cardsPerPlayer = row.length / numPlayers;
+  const newRow = [];
+
+  for (let card = 0; card < row.length; card++) {
+    const player   = card % numPlayers;            // dealt round-robin
+    const position = Math.floor(card / numPlayers);
+    newRow[player * cardsPerPlayer + position] = row[card];
+  }
+  return newRow;
+}`;
+
+// Teaching version of parallelOddEven (the real one batches the pairs into an
+// Int32Array and dispatches them to the worker pool).
+const XP_CODE_ODDEVEN = `async function parallelOddEven(lines) {
+  const longest = Math.max(...lines.map(line => line.length));
+
+  for (let pass = 0; pass < longest; pass++) {
+    const start = pass % 2;            // pairs (0,1)(2,3)... then (1,2)(3,4)...
+    const pairs = [];
+
+    for (const line of lines)          // the same pass on EVERY line at once
+      for (let i = start; i + 1 < line.length; i += 2)
+        pairs.push([line[i], line[i + 1]]);
+
+    await swapPairsOnWorkers(pairs);   // all pairs compare-swap in parallel
+  }
+}`;
+
+// Minimal highlighter: comments dimmed, keywords + numbers tinted. The two
+// snippets contain no string literals, so a first-'//' split is safe.
+function xpHighlight(src) {
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return src.split('\n').map(ln => {
+    const ci   = ln.indexOf('//');
+    const code = ci >= 0 ? ln.slice(0, ci) : ln;
+    const cmt  = ci >= 0 ? `<span class="tk-cmt">${esc(ln.slice(ci))}</span>` : '';
+    return esc(code)
+      .replace(/\b(const|let|for|if|else|await|async|function|return|of|continue|new)\b/g,
+               '<span class="tk-kw">$1</span>')
+      .replace(/\b(\d+)\b/g, '<span class="tk-num">$1</span>') + cmt;
+  }).join('\n');
+}
+
+// --- A) Unshuffle deal ------------------------------------------------------
+const XP_CARDS = 16, XP_PLAYERS = 4, XP_SW = XP_CARDS / XP_PLAYERS;
+const XP_DEAL_BEAT = 320;
+let xpDealGen = 0, xpDealState = 'idle', xpDealStatusKey = '';
+const xpDealCards = [], xpDealLabels = [], xpBlockLabels = [], xpDealZones = [], xpBlockBoxes = [];
+
+// Final slot of card c = the genuine phase-2 permutation nc = (c%k)·sw + ⌊c/k⌋
+// for n=16, k=4: player p's pile, laid out in order, lands at slots 4p..4p+3.
+const xpDealFinalSlot = c => (c % XP_PLAYERS) * XP_SW + Math.floor(c / XP_PLAYERS);
+
+function xpBuildDeal() {
+  const stage = document.getElementById('unshuffle-stage');
+  for (let p = 0; p < XP_PLAYERS; p++) {     // zones first: cards paint on top
+    const z = document.createElement('div');
+    z.className = 'unshuffle-zone';
+    stage.appendChild(z);
+    xpDealZones.push(z);
+  }
+  for (let p = 0; p < XP_PLAYERS; p++) {     // boxes around the final-row blocks
+    const x = document.createElement('div');
+    x.className = 'unshuffle-zone blkbox gone';
+    stage.appendChild(x);
+    xpBlockBoxes.push(x);
+  }
+  for (let c = 0; c < XP_CARDS; c++) {
+    const d = document.createElement('div');
+    d.className = 'unshuffle-card';
+    d.textContent = c + 1;
+    d.style.background = SLICE_COLORS[Math.floor(c / XP_SW)];   // origin slice
+    stage.appendChild(d);
+    xpDealCards.push(d);
+  }
+  for (let p = 0; p < XP_PLAYERS; p++) {
+    const l = document.createElement('div');
+    l.className = 'unshuffle-label';
+    stage.appendChild(l);
+    xpDealLabels.push(l);
+  }
+  for (let p = 0; p < XP_PLAYERS; p++) {     // each pile becomes one block
+    const b = document.createElement('div');
+    b.className = 'unshuffle-label blk';
+    b.textContent = 'Block ' + (p + 1);      // same term in both languages
+    stage.appendChild(b);
+    xpBlockLabels.push(b);
+  }
+}
+
+function xpDealLayout() {
+  const stage = document.getElementById('unshuffle-stage');
+  const W = stage.clientWidth, H = stage.clientHeight, GAP = 4;
+  const cw = Math.max(10, Math.floor(Math.min(34, (W - (XP_CARDS - 1) * GAP) / XP_CARDS)));
+  const ch = cw >= 24 ? 34 : 26;
+  const rowOff = Math.max(0, Math.floor((W - (XP_CARDS * cw + (XP_CARDS - 1) * GAP)) / 2));
+  const colW = W / XP_PLAYERS;
+  return {
+    cw, ch, colW,
+    rowX:    s => rowOff + s * (cw + GAP),
+    pileX:   p => Math.round(colW * p + colW / 2 - cw / 2),
+    labelY:  ch + 10,
+    pileY:   j => ch + 30 + j * (ch - 12),
+    zoneY:   ch + 4,
+    zoneH:   30 + 3 * (ch - 12) + ch + 4,   // label through last pile card
+    blockY:  H - ch - 28,
+    finY:    H - ch - 6,
+    boxX:    p => rowOff + (4 * p) * (cw + GAP) - 5,
+    boxW:    4 * cw + 3 * GAP + 10,
+    boxY:    H - ch - 34,                   // label through the 4 cards
+    boxH:    ch + 32,
+  };
+}
+
+// Instant placement (boot / replay reset / resize / reduced-motion jump).
+function xpPlaceDeal(mode) {
+  const stage = document.getElementById('unshuffle-stage');
+  const Lo = xpDealLayout();
+  stage.classList.add('no-anim');
+  xpDealCards.forEach((d, c) => {
+    d.style.width  = Lo.cw + 'px';
+    d.style.height = Lo.ch + 'px';
+    const x = Lo.rowX(mode === 'final' ? xpDealFinalSlot(c) : c);
+    d.style.transform = `translate(${x}px, ${mode === 'final' ? Lo.finY : 0}px)`;
+  });
+  xpDealLabels.forEach((l, p) => {
+    l.style.left  = Math.round(Lo.colW * p) + 'px';
+    l.style.top   = Lo.labelY + 'px';
+    l.style.width = Math.round(Lo.colW) + 'px';
+    l.classList.remove('hot');
+  });
+  xpBlockLabels.forEach((b, p) => {
+    b.style.left  = Lo.boxX(p) + 'px';
+    b.style.top   = Lo.blockY + 'px';
+    b.style.width = Lo.boxW + 'px';
+    b.classList.toggle('show', mode === 'final');
+  });
+  xpDealZones.forEach((z, p) => {
+    z.style.left   = (Math.round(Lo.colW * p) + 4) + 'px';
+    z.style.top    = Lo.zoneY + 'px';
+    z.style.width  = (Math.round(Lo.colW) - 8) + 'px';
+    z.style.height = Lo.zoneH + 'px';
+    z.classList.remove('hot');
+    z.classList.toggle('gone', mode === 'final');
+  });
+  xpBlockBoxes.forEach((x, p) => {
+    x.style.left   = Lo.boxX(p) + 'px';
+    x.style.top    = Lo.boxY + 'px';
+    x.style.width  = Lo.boxW + 'px';
+    x.style.height = Lo.boxH + 'px';
+    x.classList.toggle('gone', mode !== 'final');
+  });
+  void stage.offsetWidth;
+  stage.classList.remove('no-anim');
+}
+
+async function xpPlayDeal() {
+  const gen = ++xpDealGen;
+  xpDealState = 'running';
+  xpSetStatus('unshuffle', '');
+  updateXpButtons();
+  xpPlaceDeal('row');
+  if (XP_REDUCED()) {
+    xpPlaceDeal('final');
+    xpDealState = 'done'; updateXpButtons();
+    return;
+  }
+  const Lo = xpDealLayout();
+  await xpSleep(450); if (gen !== xpDealGen) return;
+
+  for (let c = 0; c < XP_CARDS; c++) {                 // one card per beat
+    const p = c % XP_PLAYERS, j = Math.floor(c / XP_PLAYERS);
+    xpDealCards[c].style.transform = `translate(${Lo.pileX(p)}px, ${Lo.pileY(j)}px)`;
+    const lab = xpDealLabels[p], zone = xpDealZones[p];   // receiving player lights up
+    lab.classList.add('hot');
+    zone.classList.add('hot');
+    setTimeout(() => {
+      if (gen !== xpDealGen) return;
+      lab.classList.remove('hot');
+      zone.classList.remove('hot');
+    }, 250);
+    await xpSleep(XP_DEAL_BEAT); if (gen !== xpDealGen) return;
+  }
+
+  xpBlockLabels.forEach(b => b.classList.add('show'));   // dealt → mark the blocks
+  xpSetStatus('unshuffle', 'xpUnshufflePiles');
+  await xpSleep(1100); if (gen !== xpDealGen) return;
+
+  xpDealZones.forEach(z => z.classList.add('gone'));     // piles dissolve with zones
+  for (let c = 0; c < XP_CARDS; c++)                   // piles → the new row
+    setTimeout(() => {
+      if (gen !== xpDealGen) return;
+      xpDealCards[c].style.transform =
+        `translate(${Lo.rowX(xpDealFinalSlot(c))}px, ${Lo.finY}px)`;
+    }, c * 18);
+  await xpSleep(XP_CARDS * 18 + 520); if (gen !== xpDealGen) return;
+
+  xpBlockBoxes.forEach(x => x.classList.remove('gone'));   // box each block
+  xpSetStatus('unshuffle', '');
+  xpDealState = 'done'; updateXpButtons();
+}
+
+// --- B) Sequential vs parallel race ----------------------------------------
+const RACE_VALUES = [3, 5, 2, 7, 4, 8, 6, 1];   // last swap in pass 7 of 8 — no dead
+const RACE_N      = RACE_VALUES.length;          // tail; 28 sequential compares total.
+const RACE_BEAT   = 430;                         // If changed, re-simulate and update
+                                                 // the 8/28 numbers in the copy.
+// The same parity passes, flattened to one compare per time step.
+const RACE_SEQ_ORDER = (() => {
+  const o = [];
+  for (let p = 0; p < RACE_N; p++)
+    for (let j = p % 2; j + 1 < RACE_N; j += 2) o.push(j);
+  return o;
+})();
+let raceGen = 0, raceState = 'idle', raceStatusKey = '';
+const raceLanes = {};   // 'seq' / 'par' → { lane, track, counter, bars, vals, barByVal, brackets }
+
+function xpBuildRaceLane(name) {
+  const track = document.getElementById('race-track-' + name);
+  const L = { track,
+              lane:     document.getElementById('race-lane-' + name),
+              counter:  document.getElementById('race-steps-' + name),
+              bars: [], vals: [], barByVal: {}, brackets: [] };
+  RACE_VALUES.forEach(v => {
+    const b = document.createElement('div');
+    b.className = 'race-bar';
+    b.textContent = v;
+    track.appendChild(b);
+    L.barByVal[v] = b;
+  });
+  for (let i = 0; i < RACE_N >> 1; i++) {
+    const k = document.createElement('div');
+    k.className = 'race-bracket';
+    track.appendChild(k);
+    L.brackets.push(k);
+  }
+  raceLanes[name] = L;
+}
+
+function xpRaceSlotX(L, i) { return Math.round(i * (L.track.clientWidth / RACE_N) + 3); }
+
+// Instant placement of a lane's bars at the current L.vals order.
+function xpPlaceRace(name) {
+  const L = raceLanes[name];
+  const slotW = L.track.clientWidth / RACE_N;
+  L.track.classList.add('no-anim');
+  L.bars.forEach((b, i) => {
+    b.style.width  = Math.max(10, Math.floor(slotW - 6)) + 'px';
+    b.style.height = Math.round(18 + (L.vals[i] - 1) / (RACE_N - 1) * 60) + 'px';
+    b.style.transform = `translateX(${xpRaceSlotX(L, i)}px)`;
+  });
+  L.brackets.forEach(k => k.classList.remove('on'));
+  void L.track.offsetWidth;
+  L.track.classList.remove('no-anim');
+}
+
+function xpResetRace() {
+  for (const name of ['seq', 'par']) {
+    const L = raceLanes[name];
+    L.vals = RACE_VALUES.slice();
+    L.bars = L.vals.map(v => L.barByVal[v]);
+    L.lane.classList.remove('done');
+    L.bars.forEach(b => b.classList.remove('swap'));
+    L.counter.textContent = '0';
+    xpPlaceRace(name);
+  }
+}
+
+function xpRaceCompareEx(L, j) {
+  if (L.vals[j] <= L.vals[j + 1]) return;
+  [L.vals[j], L.vals[j + 1]] = [L.vals[j + 1], L.vals[j]];
+  [L.bars[j], L.bars[j + 1]] = [L.bars[j + 1], L.bars[j]];
+  L.bars[j].style.transform     = `translateX(${xpRaceSlotX(L, j)}px)`;
+  L.bars[j + 1].style.transform = `translateX(${xpRaceSlotX(L, j + 1)}px)`;
+  L.bars[j].classList.add('swap');
+  L.bars[j + 1].classList.add('swap');
+}
+
+// Bracket idx shown under pair (j, j+1): spans the two bar centres.
+function xpRaceBracket(L, idx, j) {
+  const k = L.brackets[idx];
+  const slotW = L.track.clientWidth / RACE_N;
+  k.style.left  = Math.round(j * slotW + slotW / 2) + 'px';
+  k.style.width = Math.round(slotW) + 'px';
+  k.classList.add('on');
+}
+
+async function xpPlayRace() {
+  const gen = ++raceGen;
+  raceState = 'running';
+  xpSetStatus('race', '');
+  updateXpButtons();
+  xpResetRace();
+  if (XP_REDUCED()) {
+    for (const name of ['seq', 'par']) {
+      const L = raceLanes[name];
+      L.vals.sort((a, b) => a - b);
+      L.bars = L.vals.map(v => L.barByVal[v]);
+      L.lane.classList.add('done');
+      xpPlaceRace(name);
+    }
+    raceLanes.seq.counter.textContent = String(RACE_SEQ_ORDER.length);
+    raceLanes.par.counter.textContent = String(RACE_N);
+    xpSetStatus('race', 'xpRaceDone');
+    raceState = 'done'; updateXpButtons();
+    return;
+  }
+  await xpSleep(450); if (gen !== raceGen) return;
+
+  const S = raceLanes.seq, P = raceLanes.par;
+  for (let beat = 0; beat < RACE_SEQ_ORDER.length; beat++) {
+    S.bars.forEach(b => b.classList.remove('swap'));
+    P.bars.forEach(b => b.classList.remove('swap'));
+
+    // sequential lane: ONE compare-exchange this time step
+    xpRaceBracket(S, 0, RACE_SEQ_ORDER[beat]);
+    xpRaceCompareEx(S, RACE_SEQ_ORDER[beat]);
+    S.counter.textContent = String(beat + 1);
+
+    if (beat < RACE_N) {
+      // parallel lane: the whole parity pass fires together (disjoint pairs)
+      let bi = 0;
+      for (let j = beat % 2; j + 1 < RACE_N; j += 2) {
+        xpRaceBracket(P, bi++, j);
+        xpRaceCompareEx(P, j);
+      }
+      while (bi < P.brackets.length) P.brackets[bi++].classList.remove('on');
+      P.counter.textContent = String(beat + 1);
+    } else if (beat === RACE_N) {
+      // n parity passes done — the parallel lane is sorted; it rests green
+      // while the sequential lane keeps grinding.
+      P.brackets.forEach(k => k.classList.remove('on'));
+      P.bars.forEach(b => b.classList.remove('swap'));
+      P.lane.classList.add('done');
+    }
+
+    await xpSleep(RACE_BEAT); if (gen !== raceGen) return;
+  }
+
+  S.brackets[0].classList.remove('on');
+  S.bars.forEach(b => b.classList.remove('swap'));
+  S.lane.classList.add('done');
+  xpSetStatus('race', 'xpRaceDone');
+  raceState = 'done'; updateXpButtons();
+}
+
+// --- shared UI plumbing ------------------------------------------------------
+const XP_STATUS_IDS = { unshuffle: 'unshuffle-status', race: 'race-status' };
+
+function xpSetStatus(which, key) {
+  if (which === 'unshuffle') xpDealStatusKey = key; else raceStatusKey = key;
+  document.getElementById(XP_STATUS_IDS[which]).textContent = key ? t(key) : '';
+}
+
+function updateXpButtons() {
+  const set = (id, state, key) => {
+    const b = document.getElementById(id);
+    b.textContent = state === 'done' ? '⟲ ' + t('xpReplay') : '▶ ' + t(key);
+    b.disabled = state === 'running';
+  };
+  set('btn-unshuffle', xpDealState, 'xpUnshuffleBtn');
+  set('btn-race',      raceState,   'xpRaceBtn');
+}
+
+// Re-render every translatable explainer string (hooked into applyLang; safe
+// mid-animation — nothing inside the stages carries data-i18n).
+function refreshExplainerLabels() {
+  xpDealLabels.forEach((l, p) => { l.textContent = t('xpPlayerShort') + (p + 1); });
+  xpSetStatus('unshuffle', xpDealStatusKey);
+  xpSetStatus('race', raceStatusKey);
+  updateXpButtons();
+}
+
+function initExplainers() {
+  document.getElementById('xp-code-unshuffle').innerHTML = xpHighlight(XP_CODE_UNSHUFFLE);
+  document.getElementById('xp-code-oddeven').innerHTML   = xpHighlight(XP_CODE_ODDEVEN);
+  xpBuildDeal();
+  xpPlaceDeal('row');
+  xpBuildRaceLane('seq');
+  xpBuildRaceLane('par');
+  xpResetRace();
+  refreshExplainerLabels();
+  document.getElementById('btn-unshuffle').addEventListener('click',
+    () => { if (xpDealState !== 'running') xpPlayDeal(); });
+  document.getElementById('btn-race').addEventListener('click',
+    () => { if (raceState !== 'running') xpPlayRace(); });
+  window.addEventListener('resize', () => {           // mid-run resize: replay fixes
+    if (xpDealState !== 'running') xpPlaceDeal(xpDealState === 'done' ? 'final' : 'row');
+    if (raceState !== 'running') { xpPlaceRace('seq'); xpPlaceRace('par'); }
+  });
 }
 
 // Custom tooltips: after hovering a control for 2 s, show a short description.
@@ -2434,14 +3381,8 @@ const TOUR = [
   { sel: '#seg-values',     key: 'tourValues' },
   { sel: '#btn-color',      key: 'tourColor' },
   { sel: '.phase-jump-row', key: 'tourPhases' },
-  { sel: '#btn-prev',       key: 'tourPrev' },
-  { sel: '#btn-step',       key: 'tourNext' },
-  { sel: '#btn-play',       key: 'tourPlay' },
-  { sel: '#btn-play-all',   key: 'tourPlayAll' },
-  { sel: '#btn-pause',      key: 'tourPause' },
-  { sel: '#btn-stop',       key: 'tourStop' },
+  { sel: '#seg-transport',  key: 'tourTransport' },
   { sel: '.phase-panel',    key: 'tourPanel' },
-  { sel: '#lang-switch',    key: 'tourLang' },
   { sel: '#btn-tutorial',   key: 'tourTutorial' },
 ];
 let tourIndex = -1;
@@ -2527,20 +3468,26 @@ window.addEventListener('scroll', () => { if (tourIndex >= 0) showTourStep(); },
 // ---------------------------------------------------------------------------
 // Event listeners
 // ---------------------------------------------------------------------------
+// ▶ doubles as pause/resume while a session is running. A rapid second press
+// right after starting is ignored — it used to pause the session at frame 0,
+// which read as "play doesn't work" (accidental double-clicks, or clicks
+// queued while a heavy frame capture briefly held the main thread).
+const playOrPause = () => {
+  if (playing && performance.now() - playStartedAt < 250) return;
+  if (playing) togglePause(); else playCurrentPhase();
+};
 document.getElementById('btn-prev') .addEventListener('click', goPrev);
 document.getElementById('btn-step') .addEventListener('click', goNext);
-document.getElementById('btn-play') .addEventListener('click', playCurrentPhase);
+document.getElementById('btn-play') .addEventListener('click', playOrPause);
 document.getElementById('btn-play-all').addEventListener('click', playAll);
-document.getElementById('btn-pause').addEventListener('click', togglePause);
 document.getElementById('btn-stop').addEventListener('click', doStop);
 document.getElementById('btn-color').addEventListener('click', toggleColor);
 
 // Modal mirror buttons (prev / next / play / play-all / pause)
 document.getElementById('mbtn-prev').addEventListener('click', goPrev);
 document.getElementById('mbtn-next').addEventListener('click', goNext);
-document.getElementById('mbtn-play').addEventListener('click', playCurrentPhase);
+document.getElementById('mbtn-play').addEventListener('click', playOrPause);
 document.getElementById('mbtn-play-all').addEventListener('click', playAll);
-document.getElementById('mbtn-pause').addEventListener('click', togglePause);
 document.getElementById('mbtn-stop').addEventListener('click', doStop);
 document.getElementById('btn-reset').addEventListener('click', () => { exitDrawMode(); initGrid(); });
 document.getElementById('grid-size').addEventListener('change', () => { if (drawMode) startDraw(); else initGrid(); });
@@ -2572,6 +3519,8 @@ window.addEventListener('pointercancel', endStroke);
 
 document.querySelectorAll('.phase-btn').forEach(btn => {
   btn.addEventListener('click', () => {
+    cancelPlayback();            // jumping mid-play supersedes the session
+    setEditingDisabled(false);
     const raw    = btn.dataset.phase;
     const target = (raw === 'PAD') ? 'PAD' : (raw === 'UNPAD') ? 'UNPAD' : parseInt(raw);
     jumpToPhase(target);
@@ -2618,7 +3567,7 @@ function showFatalError(titleKey, descKey) {
   if (modalOpen) closeGridModal();
   const badge = document.getElementById('phase-badge');
   badge.textContent = '!';
-  badge.style.background  = 'rgba(236,138,138,0.14)';
+  badge.style.background  = 'var(--err-bg)';
   badge.style.borderColor = 'var(--red)';
   badge.style.color       = 'var(--red)';
   document.getElementById('phase-title-text').textContent = t(titleKey);
@@ -2627,8 +3576,10 @@ function showFatalError(titleKey, descKey) {
     .forEach(el => { el.disabled = true; });
 }
 
+applyTheme();
 applyLang();
 updateColorButton();
+initExplainers();
 initTooltips();
 if (!sab) {
   showFatalError('bootErrTitle', 'bootErrDesc');
