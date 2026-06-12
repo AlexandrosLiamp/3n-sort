@@ -258,7 +258,7 @@
     font-size: 14.5px;
     line-height: 1.85;
     color: var(--text2);
-    max-width: 580px;
+    max-width: 760px;   /* wide enough that the Schnorr & Shamir credit stays on one line */
   }
 
   /* ===================  CONTENT / CARD  =================== */
@@ -585,6 +585,17 @@
     line-height: 1.78;
     color: var(--text2);
   }
+
+  /* in-description links to the explainer sections below the grid */
+  .desc-link {
+    color: var(--accent2);
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--accent2) 45%, transparent);
+    text-underline-offset: 3px;
+    transition: text-decoration-color 150ms ease;
+  }
+  .desc-link:hover { text-decoration-color: var(--accent2); }
 
   /* progress track (was vertical dots) */
   .phase-dots-col {
@@ -958,14 +969,13 @@
   }
   .unshuffle-label.hot { color: var(--accent); }
 
-  /* block labels: revealed once the deal is complete; blue like the grid's
-     block boundaries */
-  .unshuffle-label.blk {
-    color: var(--accent2);
+  /* ghost of the original row: shown above the final row for comparison */
+  .unshuffle-card.ghost {
+    transition: opacity 250ms ease-out;
     opacity: 0;
-    transition: opacity 250ms ease-out, color 200ms ease;
+    pointer-events: none;
   }
-  .unshuffle-label.blk.show { opacity: 1; }
+  .unshuffle-card.ghost.show { opacity: 0.55; }
 
   /* player zones: one box per player (label + pile inside), flashing as a
      card lands in it; fades away when the piles merge into the final row */
@@ -979,10 +989,6 @@
   }
   .unshuffle-zone.hot { border-color: var(--accent); background: var(--active-bg); }
   .unshuffle-zone.gone { opacity: 0; }
-
-  /* block boxes: same chrome as the zones, blue like the block labels;
-     drawn around each block's 4 cards once the final row forms */
-  .unshuffle-zone.blkbox { border-color: var(--accent2); }
 
   /* --- B) sequential vs parallel race --- */
   .race-lane { margin-bottom: 10px; }
@@ -1141,8 +1147,35 @@
     .draw-toolbar input[type="range"] { height: 24px; }
   }
 
+  html { scroll-behavior: smooth; }   /* desc-link jumps to the explainers */
+
+  /* ===================  SHARE (copy live link)  =================== */
+  .share-fab {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 30;                       /* under the zoom modal (50) and tour (1000) */
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--glass);
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    cursor: pointer;
+    opacity: 0.75;
+    backdrop-filter: blur(4px);
+    transition: opacity 150ms ease, color 150ms ease, transform 160ms ease;
+  }
+  .share-fab:hover { opacity: 1; color: var(--text); }
+  .share-fab:active { transform: scale(0.94); }
+  .share-fab.ok { opacity: 1; color: var(--accent3); }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
+    html { scroll-behavior: auto; }
   }
 </style>
 </head>
@@ -1428,6 +1461,18 @@
   </div>
 </div>
 
+<!-- Subtle share button: copies the live app URL (a real iframe embed is off
+     the table — SharedArrayBuffer needs cross-origin isolation, which a
+     third-party embedding page can't grant; see wiki/dev/embedding.md). -->
+<button class="share-fab" id="btn-share" aria-label="Αντιγραφή συνδέσμου">
+  <svg id="share-icon-link" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/>
+  </svg>
+  <svg id="share-icon-ok" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none">
+    <path d="M4.5 12.75l6 6 9-13.5"/>
+  </svg>
+</button>
+
 
 <script>
 // ---------------------------------------------------------------------------
@@ -1445,14 +1490,14 @@ const PHASES = [
   { num: 1,
     title: { el: 'Φάση 1 — Ταξινόμηση blocks σε snakelike διάταξη',
              en: 'Phase 1 — Sort blocks in snakelike order' },
-    desc:  { el: 'Το πλέγμα χωρίζεται σε n¼ × n¼ blocks μεγέθους n¾ × n¾. Κάθε block ταξινομείται ανεξάρτητα σε snakelike διάταξη. Μετά το βήμα αυτό, κάθε block έχει το πολύ μία βρώμικη γραμμή.',
-             en: 'The grid is divided into n¼ × n¼ blocks of size n¾ × n¾. Each block is sorted independently in snakelike order. After this step, each block has at most one dirty row.' }
+    desc:  { el: 'Το πλέγμα χωρίζεται σε n¼ × n¼ blocks μεγέθους n¾ × n¾. Κάθε block ταξινομείται ανεξάρτητα σε snakelike διάταξη, με <a class="desc-link" href="#explainer-race">odd-even transposition sort</a> για τη γραμμική ταξινόμηση του φιδιού. Μετά το βήμα αυτό, κάθε block έχει το πολύ μία βρώμικη γραμμή.',
+             en: 'The grid is divided into n¼ × n¼ blocks of size n¾ × n¾. Each block is sorted independently in snakelike order, using <a class="desc-link" href="#explainer-race">odd-even transposition sort</a> for the linear sorting of the snake. After this step, each block has at most one dirty row.' }
   },
   { num: 2,
     title: { el: 'Φάση 2 — n¼-way unshuffle στηλών',
              en: 'Phase 2 — n¼-way column unshuffle' },
-    desc:  { el: 'Εκτελούμε n¼-way unshuffle των στηλών του πλέγματος. Σκοπός είναι η αναδιανομή όλων των στηλών ενός block σε όλα τα n¼ block του ίδιου οριζόντιου slice. k-way unshuffle ορίζεται ως ανακατανομή που αντιστοιχεί με το μοίρασμα n καρτών σε k παίκτες με round-robin τρόπο.',
-             en: 'We perform an n¼-way unshuffle of the grid’s columns. The goal is to redistribute all the columns of a block across all n¼ blocks of the same horizontal slice. A k-way unshuffle is defined as the redistribution corresponding to dealing n cards to k players in round-robin fashion.' }
+    desc:  { el: 'Εκτελούμε n¼-way <a class="desc-link" href="#explainer-unshuffle">unshuffle</a> των στηλών του πλέγματος. Σκοπός είναι η αναδιανομή όλων των στηλών ενός block σε όλα τα n¼ block του ίδιου οριζόντιου slice. k-way unshuffle ορίζεται ως ανακατανομή που αντιστοιχεί με το μοίρασμα n καρτών σε k παίκτες με round-robin τρόπο.',
+             en: 'We perform an n¼-way <a class="desc-link" href="#explainer-unshuffle">unshuffle</a> of the grid’s columns. The goal is to redistribute all the columns of a block across all n¼ blocks of the same horizontal slice. A k-way unshuffle is defined as the redistribution corresponding to dealing n cards to k players in round-robin fashion.' }
   },
   { num: 3,
     title: { el: 'Φάση 3 — Εκ νέου ταξινόμηση blocks',
@@ -1557,7 +1602,7 @@ const STRINGS = {
     xpUnshufflePiles: 'Κάθε παίκτης κρατά μία κάρτα από κάθε χρώμα.',
     xpPlayerShort:    'Π',
     xpRaceTitle:      'Odd-even transposition sort: σειριακά και παράλληλα',
-    xpRaceDesc:       'Το odd-even transposition sort συγκρίνει γειτονικά ζευγάρια και τα ανταλλάσσει όταν είναι σε λάθος σειρά: στο ένα πέρασμα τα ζευγάρια (1,2), (3,4), …, στο επόμενο τα (2,3), (4,5), … Ένας σειριακός υπολογιστής κάνει μία σύγκριση τη φορά· ένας παράλληλος εκτελεί όλα τα ζευγάρια του περάσματος μαζί, αφού δεν μοιράζονται στοιχεία. Ίδιες 8 τιμές και στις δύο γραμμές: η παράλληλη τελειώνει σε 8 βήματα χρόνου, η σειριακή χρειάζεται 28.',
+    xpRaceDesc:       'Το odd-even transposition sort συγκρίνει γειτονικά ζευγάρια και τα ανταλλάσσει όταν είναι σε λάθος σειρά: στο ένα πέρασμα τα ζευγάρια (1,2), (3,4), …, στο επόμενο τα (2,3), (4,5), … Ένας σειριακός υπολογιστής κάνει μία σύγκριση τη φορά· ένας παράλληλος εκτελεί όλα τα ζευγάρια του περάσματος μαζί, αφού δεν μοιράζονται στοιχεία. Η παράλληλη γραμμή τελειώνει σε 8 βήματα χρόνου, η σειριακή χρειάζεται 28.',
     xpRaceBtn:        'Εκκίνηση',
     xpRaceSeq:        'Σειριακά',
     xpRacePar:        'Παράλληλα',
@@ -1587,7 +1632,9 @@ const STRINGS = {
     ariaClose:      'Κλείσιμο',
     ariaLang:       'Γλώσσα',
     ariaZoom:       'Μεγέθυνση πλέγματος',
-    ariaTheme:      'Εναλλαγή φωτεινού/σκούρου θέματος'
+    ariaTheme:      'Εναλλαγή φωτεινού/σκούρου θέματος',
+    ariaShare:      'Αντιγραφή συνδέσμου της εφαρμογής',
+    tipShare:       'Αντιγραφή του συνδέσμου της εφαρμογής'
   },
   en: {
     heroEyebrow:    'Interactive Algorithm Presentation',
@@ -1643,7 +1690,7 @@ const STRINGS = {
     xpUnshufflePiles: 'Each player holds one card of every colour.',
     xpPlayerShort:    'P',
     xpRaceTitle:      'Odd-even transposition sort: sequential and parallel',
-    xpRaceDesc:       'Odd-even transposition sort compares neighbouring pairs and swaps them when they are out of order: one pass handles pairs (1,2), (3,4), …, the next (2,3), (4,5), … A sequential computer makes one comparison at a time; a parallel one executes all pairs of a pass together, since they share no elements. The same 8 values run in both lanes: the parallel lane finishes in 8 time steps, the sequential one needs 28.',
+    xpRaceDesc:       'Odd-even transposition sort compares neighbouring pairs and swaps them when they are out of order: one pass handles pairs (1,2), (3,4), …, the next (2,3), (4,5), … A sequential computer makes one comparison at a time; a parallel one executes all pairs of a pass together, since they share no elements. The parallel lane finishes in 8 time steps, the sequential one needs 28.',
     xpRaceBtn:        'Race',
     xpRaceSeq:        'Sequential',
     xpRacePar:        'Parallel',
@@ -1673,7 +1720,9 @@ const STRINGS = {
     ariaClose:      'Close',
     ariaLang:       'Language',
     ariaZoom:       'Grid zoom view',
-    ariaTheme:      'Toggle light/dark theme'
+    ariaTheme:      'Toggle light/dark theme',
+    ariaShare:      'Copy the app link',
+    tipShare:       'Copy the app link'
   }
 };
 
@@ -1695,6 +1744,7 @@ function applyLang() {
   document.getElementById('grid-modal').setAttribute('aria-label', t('ariaZoom'));
   document.getElementById('tour-popover').setAttribute('aria-label', t('btnTutorial'));
   document.getElementById('btn-theme').setAttribute('aria-label', t('ariaTheme'));
+  document.getElementById('btn-share').setAttribute('aria-label', t('ariaShare'));
   document.getElementById('grid-size').setAttribute('placeholder', t('sizePlaceholder'));
   refreshDrawLabels();
   refreshExplainerLabels();
@@ -2396,7 +2446,9 @@ function renderPhaseInfo() {
     const title = p.title[LANG].replace(/^(?:Φάση|Phase)\s+\d+\s*—\s*/, '');
     badge.textContent = sym; badge.className = atDone ? 'phase-badge done' : 'phase-badge active';
     document.getElementById('phase-title-text').textContent = title;
-    document.getElementById('phase-desc-text').textContent  = p.desc[LANG];
+    // innerHTML: descs are static strings from PHASES and may carry
+    // .desc-link anchors to the explainer sections below the grid
+    document.getElementById('phase-desc-text').innerHTML    = p.desc[LANG];
     if (mbadge) mbadge.textContent = sym;
     if (mtitle) mtitle.textContent = atDone ? `${title} — ${t('doneTitle')}` : title;
     gridLabel = `${N}×${N} — ${p.title[LANG]}` + (atDone ? ` — ${t('doneTitle')}` : '');
@@ -2990,7 +3042,7 @@ function xpHighlight(src) {
 const XP_CARDS = 16, XP_PLAYERS = 4, XP_SW = XP_CARDS / XP_PLAYERS;
 const XP_DEAL_BEAT = 320;
 let xpDealGen = 0, xpDealState = 'idle', xpDealStatusKey = '';
-const xpDealCards = [], xpDealLabels = [], xpBlockLabels = [], xpDealZones = [], xpBlockBoxes = [];
+const xpDealCards = [], xpDealLabels = [], xpDealZones = [], xpGhostCards = [];
 
 // Final slot of card c = the genuine phase-2 permutation nc = (c%k)·sw + ⌊c/k⌋
 // for n=16, k=4: player p's pile, laid out in order, lands at slots 4p..4p+3.
@@ -3004,11 +3056,13 @@ function xpBuildDeal() {
     stage.appendChild(z);
     xpDealZones.push(z);
   }
-  for (let p = 0; p < XP_PLAYERS; p++) {     // boxes around the final-row blocks
-    const x = document.createElement('div');
-    x.className = 'unshuffle-zone blkbox gone';
-    stage.appendChild(x);
-    xpBlockBoxes.push(x);
+  for (let c = 0; c < XP_CARDS; c++) {       // ghost of the original row
+    const g = document.createElement('div');
+    g.className = 'unshuffle-card ghost';
+    g.textContent = c + 1;
+    g.style.background = SLICE_COLORS[Math.floor(c / XP_SW)];
+    stage.appendChild(g);
+    xpGhostCards.push(g);
   }
   for (let c = 0; c < XP_CARDS; c++) {
     const d = document.createElement('div');
@@ -3023,13 +3077,6 @@ function xpBuildDeal() {
     l.className = 'unshuffle-label';
     stage.appendChild(l);
     xpDealLabels.push(l);
-  }
-  for (let p = 0; p < XP_PLAYERS; p++) {     // each pile becomes one block
-    const b = document.createElement('div');
-    b.className = 'unshuffle-label blk';
-    b.textContent = 'Block ' + (p + 1);      // same term in both languages
-    stage.appendChild(b);
-    xpBlockLabels.push(b);
   }
 }
 
@@ -3048,12 +3095,8 @@ function xpDealLayout() {
     pileY:   j => ch + 30 + j * (ch - 12),
     zoneY:   ch + 4,
     zoneH:   30 + 3 * (ch - 12) + ch + 4,   // label through last pile card
-    blockY:  H - ch - 28,
+    ghostY:  H - 2 * ch - 14,               // original row, just above the result
     finY:    H - ch - 6,
-    boxX:    p => rowOff + (4 * p) * (cw + GAP) - 5,
-    boxW:    4 * cw + 3 * GAP + 10,
-    boxY:    H - ch - 34,                   // label through the 4 cards
-    boxH:    ch + 32,
   };
 }
 
@@ -3074,11 +3117,11 @@ function xpPlaceDeal(mode) {
     l.style.width = Math.round(Lo.colW) + 'px';
     l.classList.remove('hot');
   });
-  xpBlockLabels.forEach((b, p) => {
-    b.style.left  = Lo.boxX(p) + 'px';
-    b.style.top   = Lo.blockY + 'px';
-    b.style.width = Lo.boxW + 'px';
-    b.classList.toggle('show', mode === 'final');
+  xpGhostCards.forEach((g, c) => {
+    g.style.width  = Lo.cw + 'px';
+    g.style.height = Lo.ch + 'px';
+    g.style.transform = `translate(${Lo.rowX(c)}px, ${Lo.ghostY}px)`;
+    g.classList.toggle('show', mode === 'final');
   });
   xpDealZones.forEach((z, p) => {
     z.style.left   = (Math.round(Lo.colW * p) + 4) + 'px';
@@ -3087,13 +3130,6 @@ function xpPlaceDeal(mode) {
     z.style.height = Lo.zoneH + 'px';
     z.classList.remove('hot');
     z.classList.toggle('gone', mode === 'final');
-  });
-  xpBlockBoxes.forEach((x, p) => {
-    x.style.left   = Lo.boxX(p) + 'px';
-    x.style.top    = Lo.boxY + 'px';
-    x.style.width  = Lo.boxW + 'px';
-    x.style.height = Lo.boxH + 'px';
-    x.classList.toggle('gone', mode !== 'final');
   });
   void stage.offsetWidth;
   stage.classList.remove('no-anim');
@@ -3127,11 +3163,11 @@ async function xpPlayDeal() {
     await xpSleep(XP_DEAL_BEAT); if (gen !== xpDealGen) return;
   }
 
-  xpBlockLabels.forEach(b => b.classList.add('show'));   // dealt → mark the blocks
   xpSetStatus('unshuffle', 'xpUnshufflePiles');
   await xpSleep(1100); if (gen !== xpDealGen) return;
 
   xpDealZones.forEach(z => z.classList.add('gone'));     // piles dissolve with zones
+  xpGhostCards.forEach(g => g.classList.add('show'));    // original row for contrast
   for (let c = 0; c < XP_CARDS; c++)                   // piles → the new row
     setTimeout(() => {
       if (gen !== xpDealGen) return;
@@ -3140,7 +3176,6 @@ async function xpPlayDeal() {
     }, c * 18);
   await xpSleep(XP_CARDS * 18 + 520); if (gen !== xpDealGen) return;
 
-  xpBlockBoxes.forEach(x => x.classList.remove('gone'));   // box each block
   xpSetStatus('unshuffle', '');
   xpDealState = 'done'; updateXpButtons();
 }
@@ -3359,6 +3394,7 @@ const TOOLTIP_IDS = {
   'grid-size': 'tipSizeInput', 'btn-brush-color': 'tipBrushColor', 'brush-size': 'tipBrushSize',
   'btn-clear': 'tipClear', 'btn-finish': 'tipFinish',
   'mbtn-prev': 'tipPrev', 'mbtn-next': 'tipNext',
+  'btn-share': 'tipShare',
 };
 function initTooltips() {
   tipEl = document.getElementById('tooltip');
@@ -3482,6 +3518,26 @@ document.getElementById('btn-play') .addEventListener('click', playOrPause);
 document.getElementById('btn-play-all').addEventListener('click', playAll);
 document.getElementById('btn-stop').addEventListener('click', doStop);
 document.getElementById('btn-color').addEventListener('click', toggleColor);
+
+// Share: copy the canonical live URL (works from localhost previews too).
+// A real iframe embed is not offered — SAB needs cross-origin isolation,
+// which a third-party embedding page cannot grant.
+const SHARE_URL = 'https://alexandrosliamp.github.io/3n-sort/';
+let shareOkTimer = 0;
+document.getElementById('btn-share').addEventListener('click', () => {
+  navigator.clipboard.writeText(SHARE_URL).then(() => {
+    const b = document.getElementById('btn-share');
+    b.classList.add('ok');
+    document.getElementById('share-icon-link').style.display = 'none';
+    document.getElementById('share-icon-ok').style.display   = '';
+    clearTimeout(shareOkTimer);
+    shareOkTimer = setTimeout(() => {
+      b.classList.remove('ok');
+      document.getElementById('share-icon-link').style.display = '';
+      document.getElementById('share-icon-ok').style.display   = 'none';
+    }, 1600);
+  }).catch(() => {});   // clipboard unavailable (e.g. denied) — quietly do nothing
+});
 
 // Modal mirror buttons (prev / next / play / play-all / pause)
 document.getElementById('mbtn-prev').addEventListener('click', goPrev);
